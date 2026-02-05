@@ -18,7 +18,10 @@
                 <small id="modal-ficha"></small>
             </div>
 
-            <button class="modal-close" onclick="fecharModal()">✕</button>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="gerarPdfFicha()">Gerar PDF</button>
+                <button class="modal-close" onclick="fecharModal()">✕</button>
+            </div>
         </header>
 
         <!-- CONTEÚDO -->

@@ -356,6 +356,12 @@ body {
     transition: background .2s ease, transform .15s ease;
 }
 
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .modal-close:hover {
     background: #f1f5f9;
     transform: translateY(-1px);
@@ -652,6 +658,24 @@ body {
 .btn-primary:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
+}
+
+.btn-secondary {
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--text);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+    border-color: #cbd5f5;
 }
 
 .form-grid {
