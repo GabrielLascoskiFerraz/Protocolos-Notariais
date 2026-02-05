@@ -102,10 +102,13 @@ function abrirModal(id) {
    ======================================================= */
 
 function fecharModal() {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-
-    window.protocoloAtual = null;
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('closing');
+        document.body.style.overflow = '';
+        window.protocoloAtual = null;
+    }, 200);
 }
 
 /* =========================================================

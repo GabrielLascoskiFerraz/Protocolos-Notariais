@@ -238,7 +238,7 @@ function buscarProtocolos(query) {
 function criarCard(p) {
 
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = 'card card-appear';
     card.draggable = true;
     card.dataset.id = p.id;
     card.dataset.status = p.status;
@@ -303,6 +303,7 @@ function criarCard(p) {
         </div>
     `;
 
+    setTimeout(() => card.classList.remove('card-appear'), 300);
     return card;
 }
 

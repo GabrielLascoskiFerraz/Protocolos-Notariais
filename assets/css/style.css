@@ -168,7 +168,8 @@ body {
 .column {
     background: var(--grad);
     border-radius: var(--radius);
-    min-width: 280px;
+    width: 320px;
+    min-width: 320px;
     max-width: 320px;
     display: flex;
     flex-direction: column;
@@ -233,6 +234,10 @@ body {
 
 .card.move-animate {
     animation: cardDrop .28s ease, cardTopHint .6s ease;
+}
+
+.card.card-appear {
+    animation: cardAppear .22s ease-out;
 }
 
 .card-tag {
@@ -312,12 +317,22 @@ body {
     display: none;
 }
 
+.modal.closing .modal-panel {
+    animation: modalOut .2s ease both;
+}
+
 .modal-overlay {
     position: absolute;
     inset: 0;
     background: radial-gradient(circle at 30% 20%, rgba(15, 23, 42, 0.25), rgba(15, 23, 42, 0.6));
     backdrop-filter: blur(2px);
     z-index: 0;
+    opacity: 1;
+    transition: opacity .12s ease;
+}
+
+.modal.closing .modal-overlay {
+    opacity: 0;
 }
 
 .modal-panel {
@@ -330,11 +345,33 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: -12px 0 40px rgba(15, 23, 42, 0.18);
-    animation: slideIn .25s ease both;
+    animation: modalIn .25s ease both;
     border-left: 1px solid #e2e8f0;
     border-radius: 16px;
     overflow: hidden;
     z-index: 1;
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes modalOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
 }
 
 .modal-header {
@@ -920,6 +957,17 @@ body {
     0% { box-shadow: 0 0 0 rgba(59, 130, 246, 0.0); }
     50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.12); }
     100% { box-shadow: 0 0 0 rgba(59, 130, 246, 0.0); }
+}
+
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .hidden {
