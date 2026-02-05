@@ -1,4 +1,4 @@
-# Dash Protocolos (Kanban)
+# Protocolos Notariais
 
 Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andamentos), valores adicionais, busca, filtros e sincronização automática.
 
