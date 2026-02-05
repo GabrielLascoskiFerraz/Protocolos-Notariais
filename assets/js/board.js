@@ -26,8 +26,8 @@ document.addEventListener('dragstart', function (e) {
 document.addEventListener('dragend', function () {
     if (draggedCard) {
         draggedCard.classList.remove('dragging');
-        draggedCard = null;
     }
+    draggedCard = null;
     window.isDraggingCard = false;
 });
 
@@ -49,19 +49,21 @@ document.querySelectorAll('.cards').forEach(column => {
         e.preventDefault();
         column.classList.remove('drag-over');
 
-        if (!draggedCard) return;
+        const idFromDrag = e.dataTransfer?.getData('text/plain');
+        const cardEl = draggedCard || (idFromDrag ? document.querySelector(`.card[data-id="${idFromDrag}"]`) : null);
+        if (!cardEl) return;
 
-        const id = draggedCard.dataset.id;
+        const id = cardEl.dataset.id;
         const novoStatus = column.id;
 
         // Move visualmente (no topo para feedback imediato)
-        column.prepend(draggedCard);
-        draggedCard.dataset.status = novoStatus;
-        atualizarAcoesCard(draggedCard, novoStatus);
-        draggedCard.classList.remove('move-animate');
-        void draggedCard.offsetWidth;
-        draggedCard.classList.add('move-animate');
-        setTimeout(() => draggedCard.classList.remove('move-animate'), 280);
+        column.prepend(cardEl);
+        cardEl.dataset.status = novoStatus;
+        atualizarAcoesCard(cardEl, novoStatus);
+        cardEl.classList.remove('move-animate');
+        void cardEl.offsetWidth;
+        cardEl.classList.add('move-animate');
+        setTimeout(() => cardEl.classList.remove('move-animate'), 280);
         window.suppressSyncUntil = Date.now() + 1500;
 
         // Atualiza backend

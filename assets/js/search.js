@@ -17,6 +17,7 @@ let loading = {};
 let exhausted = {};
 let currentQuery = '';
 let lastSyncAt = null;
+let shouldClear = {};
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
@@ -125,6 +126,10 @@ function loadPage(status) {
             lastSyncKey = key;
             lastSyncHash = hash;
 
+            if ((offsets[status] || 0) === 0 && shouldClear[status]) {
+                limparColuna(status);
+                shouldClear[status] = false;
+            }
             appendToBoard(status, protocolos);
             offsets[status] = (offsets[status] || 0) + protocolos.length;
             if (protocolos.length < PAGE_SIZE) {
@@ -180,10 +185,11 @@ function atualizarCard(id) {
    LIMPA TODAS AS COLUNAS
    ======================================================= */
 
-function limparBoard() {
-    document.querySelectorAll('.cards').forEach(col => {
-        col.innerHTML = '';
-    });
+function limparColuna(status) {
+    const coluna = document.getElementById(status);
+    if (coluna) {
+        coluna.innerHTML = '';
+    }
 }
 
 /* =========================================================
@@ -203,14 +209,16 @@ function resetBoardAndLoad() {
     if (searchInput) {
         currentQuery = searchInput.value.trim();
     }
-    limparBoard();
-    offsets = {};
+    offsets = {}; 
     loading = {};
     exhausted = {};
+
+    shouldClear = {};
     STATUSES.forEach(s => {
         offsets[s] = 0;
         loading[s] = false;
         exhausted[s] = false;
+        shouldClear[s] = true;
         loadPage(s);
     });
 }
