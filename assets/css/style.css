@@ -120,6 +120,44 @@ body {
     transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
 }
 
+.filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    flex-basis: 100%;
+    width: 100%;
+    order: 10;
+    margin-top: 6px;
+}
+
+.filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-size: 12px;
+    color: #0f172a;
+}
+
+.filter-chip button {
+    border: none;
+    background: #e2e8f0;
+    color: #334155;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.filter-chip button:hover {
+    background: #cbd5f5;
+}
+
 #filter-urgente {
     border-color: #fecaca;
     background:
@@ -238,6 +276,10 @@ body {
 
 .card.card-appear {
     animation: cardAppear .22s ease-out;
+}
+
+.card.card-sync {
+    animation: cardSyncPulse .8s ease;
 }
 
 .card-tag {
@@ -968,6 +1010,19 @@ body {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+}
+
+@keyframes cardSyncPulse {
+    0% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+    40% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.12); }
+    100% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+mark.highlight {
+    background: #fde68a;
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 4px;
 }
 
 .hidden {

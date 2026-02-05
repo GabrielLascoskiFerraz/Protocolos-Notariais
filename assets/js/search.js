@@ -7,6 +7,7 @@ const filterAto = document.getElementById('filter-ato');
 const filterDigitador = document.getElementById('filter-digitador');
 const filterUrgente = document.getElementById('filter-urgente');
 const filterTag = document.getElementById('filter-tag');
+const activeFilters = document.getElementById('active-filters');
 const STATUSES = ['PARA_DISTRIBUIR', 'EM_ANDAMENTO', 'PARA_CORRECAO', 'LAVRADOS', 'ARQUIVADOS'];
 const PAGE_SIZE = 50;
 let searchTimeout = null;
@@ -28,6 +29,7 @@ if (searchInput) {
 
         searchTimeout = setTimeout(() => {
             resetBoardAndLoad();
+            renderActiveFilters();
         }, 300);
     });
 }
@@ -35,24 +37,45 @@ if (searchInput) {
 if (filterAto) {
     filterAto.addEventListener('change', () => {
         resetBoardAndLoad();
+        renderActiveFilters();
     });
 }
 
 if (filterDigitador) {
     filterDigitador.addEventListener('change', () => {
         resetBoardAndLoad();
+        renderActiveFilters();
     });
 }
 
 if (filterUrgente) {
     filterUrgente.addEventListener('change', () => {
         resetBoardAndLoad();
+        renderActiveFilters();
     });
 }
 
 if (filterTag) {
     filterTag.addEventListener('change', () => {
         resetBoardAndLoad();
+        renderActiveFilters();
+    });
+}
+
+if (activeFilters) {
+    activeFilters.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-filter]');
+        if (!btn) return;
+        const type = btn.dataset.filter;
+
+        if (type === 'q' && searchInput) searchInput.value = '';
+        if (type === 'ato' && filterAto) filterAto.value = '';
+        if (type === 'digitador' && filterDigitador) filterDigitador.value = '';
+        if (type === 'urgente' && filterUrgente) filterUrgente.value = '';
+        if (type === 'tag' && filterTag) filterTag.value = '';
+
+        resetBoardAndLoad();
+        renderActiveFilters();
     });
 }
 
@@ -209,7 +232,7 @@ function resetBoardAndLoad() {
     if (searchInput) {
         currentQuery = searchInput.value.trim();
     }
-    offsets = {}; 
+    offsets = {};
     loading = {};
     exhausted = {};
 
@@ -221,6 +244,7 @@ function resetBoardAndLoad() {
         shouldClear[s] = true;
         loadPage(s);
     });
+    renderActiveFilters();
 }
 
 function buscarProtocolos(query) {
@@ -229,6 +253,7 @@ function buscarProtocolos(query) {
         searchInput.value = currentQuery;
     }
     resetBoardAndLoad();
+    renderActiveFilters();
 }
 
 /* =========================================================
@@ -255,9 +280,14 @@ function criarCard(p) {
     const corTag = corAtoFixa(p.ato || '') || (p.tag_cor && p.tag_cor.trim() ? p.tag_cor : '#64748b');
     const corTexto = corTextoParaFundo(corTag);
 
+    const query = (currentQuery || '').trim();
+    const queryUpper = query.toUpperCase();
+    const atoText = (p.ato || '').toUpperCase();
+    const atoDisplay = highlightText(atoText, queryUpper);
+
     card.innerHTML = `
         <div class="card-tag" style="background-color: ${corTag}; color: ${corTexto}">
-            ${escapeHtml((p.ato || '').toUpperCase())}
+            ${atoDisplay}
         </div>
 
         <div class="card-body">
@@ -275,10 +305,10 @@ function criarCard(p) {
                    </div>`
                 : ''
             }
-            ${p.apresentante ? `<div class="card-apresentante">${escapeHtml(p.apresentante)}</div>` : ''}
-            ${p.digitador ? `<div class="card-digitador"><strong>Digitador:</strong> <strong>${escapeHtml(p.digitador)}</strong></div>` : ''}
-            ${p.outorgantes ? `<div class="card-outorgantes">Outorgante: ${escapeHtml(p.outorgantes)}</div>` : ''}
-            ${p.outorgados ? `<div class="card-outorgados"><strong>Outorgado:</strong> <strong>${escapeHtml(p.outorgados)}</strong></div>` : ''}
+            ${p.apresentante ? `<div class="card-apresentante">${highlightText(p.apresentante, query)}</div>` : ''}
+            ${p.digitador ? `<div class="card-digitador"><strong>Digitador:</strong> <strong>${highlightText(p.digitador, query)}</strong></div>` : ''}
+            ${p.outorgantes ? `<div class="card-outorgantes">Outorgante: ${highlightText(p.outorgantes, query)}</div>` : ''}
+            ${p.outorgados ? `<div class="card-outorgados"><strong>Outorgado:</strong> <strong>${highlightText(p.outorgados, query)}</strong></div>` : ''}
             ${p.data_apresentacao ? `<div class="card-data">${formatarData(p.data_apresentacao)}</div>` : ''}
         </div>
 
@@ -352,6 +382,8 @@ function syncChanges() {
                     existing.remove();
                 }
                 insertCardSorted(coluna, novoCard, p);
+                novoCard.classList.add('card-sync');
+                setTimeout(() => novoCard.classList.remove('card-sync'), 800);
             });
 
             if (payload?.server_now) lastSyncAt = payload.server_now;
@@ -381,6 +413,37 @@ function escapeHtml(text) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightText(text, query) {
+    if (!query) return escapeHtml(text);
+    const escapedText = escapeHtml(text);
+    const re = new RegExp(escapeRegex(query), 'gi');
+    return escapedText.replace(re, '<mark class="highlight">$&</mark>');
+}
+
+function renderActiveFilters() {
+    if (!activeFilters) return;
+    const chips = [];
+
+    if (currentQuery) chips.push({ label: `Busca: ${currentQuery}`, type: 'q' });
+    if (filterAto?.value) chips.push({ label: `Ato: ${filterAto.options[filterAto.selectedIndex]?.text || filterAto.value}`, type: 'ato' });
+    if (filterDigitador?.value) chips.push({ label: `Digitador: ${filterDigitador.options[filterDigitador.selectedIndex]?.text || filterDigitador.value}`, type: 'digitador' });
+    if (filterUrgente?.value) chips.push({ label: 'Urgente', type: 'urgente' });
+    if (filterTag?.value) chips.push({ label: `Tag: ${filterTag.options[filterTag.selectedIndex]?.text || filterTag.value}`, type: 'tag' });
+
+    if (!chips.length) {
+        activeFilters.innerHTML = '';
+        return;
+    }
+
+    activeFilters.innerHTML = chips
+        .map(c => `<span class="filter-chip">${escapeHtml(c.label)}<button type="button" data-filter="${c.type}">×</button></span>`)
+        .join('');
 }
 
 function corAtoFixa(ato) {

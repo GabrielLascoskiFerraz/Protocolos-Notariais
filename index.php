@@ -112,6 +112,7 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
     <button id="toggle-archived" class="btn-toggle-archived" aria-expanded="false" type="button">
         Mostrar arquivados
     </button>
+    <div id="active-filters" class="filter-chips"></div>
 </header>
 
 <main>
