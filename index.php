@@ -60,6 +60,7 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
 
     <base href="<?= htmlspecialchars($baseHref) ?>">
 
+    <link rel="icon" href="assets/img/logo.png">
     <link rel="stylesheet" href="assets/css/style.css">
 
     <script>window.BASE_URL = <?= json_encode($baseHref) ?>;</script>

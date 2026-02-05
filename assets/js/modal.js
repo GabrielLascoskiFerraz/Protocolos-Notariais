@@ -450,7 +450,7 @@ function gerarPdfFicha() {
   <div class="header">
     <div style="display:flex; align-items:center; gap:10px;">
       <img src="${apiUrl('assets/img/logo.png')}" alt="Logo" style="width:36px; height:auto;">
-      <div class="title">Ficha ${p.ficha || p.id} — ${p.ato || ''}</div>
+    <div class="title">Ficha ${(!p.ficha || p.ficha == 0) ? '__________' : p.ficha} — ${p.ato || ''}</div>
     </div>
     <div class="meta">${new Date().toLocaleDateString('pt-BR')}</div>
   </div>
@@ -513,6 +513,21 @@ function gerarPdfFicha() {
     <div class="box">${p.observacoes || ''}</div>
   </div>
 </body>
+<script>
+  (function() {
+    const imgs = Array.from(document.images || []);
+    const wait = imgs.map(img => new Promise(resolve => {
+      if (img.complete) return resolve();
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+    }));
+    Promise.all(wait).then(() => {
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    });
+  })();
+</script>
 </html>`;
 
         const w = window.open('', '_blank');
@@ -521,7 +536,6 @@ function gerarPdfFicha() {
         w.document.write(html);
         w.document.close();
         w.focus();
-        w.print();
     })
     .catch(err => console.error(err));
 }
