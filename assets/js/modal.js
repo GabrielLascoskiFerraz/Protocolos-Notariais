@@ -16,6 +16,7 @@ const tagOutrosInput = document.getElementById('tag-custom-input');
 const digitadorSelect = document.getElementById('digitador-select');
 const digitadorOutrosWrapper = document.getElementById('digitador-outros');
 const digitadorInput = document.getElementById('digitador-input');
+const btnFecharModal = document.getElementById('modal-close');
 
 if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
     atoSelect.addEventListener('change', () => {
@@ -76,6 +77,16 @@ if (digitadorSelect && digitadorOutrosWrapper && digitadorInput) {
         }
     });
 }
+
+if (btnFecharModal) {
+    btnFecharModal.addEventListener('click', fecharModal);
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!modal || modal.classList.contains('hidden')) return;
+    fecharModal();
+});
 
 /* =========================================================
    ABRIR MODAL

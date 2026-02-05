@@ -248,6 +248,26 @@ body {
     flex: 1;
 }
 
+.cards.drag-over {
+    outline: 2px dashed rgba(37, 99, 235, 0.6);
+    outline-offset: -4px;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.02));
+    border-radius: 12px;
+}
+
+.cards:empty::before {
+    content: 'Sem cards';
+    display: block;
+    padding: 16px 12px;
+    margin: 8px;
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+    background: #f8fafc;
+}
+
 /* =========================================================
    CARD
    ======================================================= */
@@ -276,10 +296,28 @@ body {
 
 .card.card-appear {
     animation: cardAppear .22s ease-out;
+    animation-fill-mode: both;
+}
+
+.card.dragging {
+    position: relative;
+    transform: scale(0.98);
+    box-shadow: none;
+    opacity: 0.15;
+    filter: grayscale(0.2);
+}
+
+.card.dragging::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed #cbd5f5;
+    border-radius: var(--radius);
+    pointer-events: none;
 }
 
 .card.card-sync {
-    animation: cardSyncPulse .8s ease;
+    animation: cardSyncPulse 1s ease;
 }
 
 .card-tag {
@@ -335,6 +373,43 @@ body {
     border-top: 1px solid var(--border);
     font-size: 13px;
 }
+
+.card.card-skeleton {
+    border-color: transparent;
+    box-shadow: none;
+    background: #eef2f7;
+    cursor: default;
+    overflow: hidden;
+}
+
+.card.card-skeleton .card-body,
+.card.card-skeleton .card-footer {
+    padding-top: 10px;
+}
+
+.skeleton-bar {
+    height: 22px;
+    background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line {
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e2e8f0 0%, #f1f5f9 50%, #e2e8f0 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line + .skeleton-line {
+    margin-top: 8px;
+}
+
+.skeleton-line.w-90 { width: 90%; }
+.skeleton-line.w-70 { width: 70%; }
+.skeleton-line.w-60 { width: 60%; }
+.skeleton-line.w-40 { width: 40%; }
 
 .card-handle {
     cursor: grab;
@@ -1013,9 +1088,13 @@ body {
 }
 
 @keyframes cardSyncPulse {
-    0% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
-    40% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.12); }
-    100% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+    0% { box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6); }
+    100% { box-shadow: inset 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 mark.highlight {

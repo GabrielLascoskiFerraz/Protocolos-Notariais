@@ -19,6 +19,8 @@ let exhausted = {};
 let currentQuery = '';
 let lastSyncAt = null;
 let shouldClear = {};
+let staggerIndex = {};
+let skeletonShown = {};
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
@@ -128,6 +130,10 @@ function loadPage(status) {
         return;
     }
 
+    if ((offsets[status] || 0) === 0) {
+        showSkeletons(status);
+    }
+
     const url = apiUrl(`api/protocolos.php?${params.toString()}`);
 
     fetch(url)
@@ -136,6 +142,7 @@ function loadPage(status) {
             const protocolos = payload?.items;
             if (!Array.isArray(protocolos)) {
                 console.error('Resposta inválida da busca:', payload);
+                clearSkeletons(status);
                 loading[status] = false;
                 return;
             }
@@ -153,6 +160,7 @@ function loadPage(status) {
                 limparColuna(status);
                 shouldClear[status] = false;
             }
+            clearSkeletons(status);
             appendToBoard(status, protocolos);
             offsets[status] = (offsets[status] || 0) + protocolos.length;
             if (protocolos.length < PAGE_SIZE) {
@@ -166,6 +174,7 @@ function loadPage(status) {
             loading[status] = false;
         })
         .catch(err => {
+            clearSkeletons(status);
             loading[status] = false;
             console.error(err);
         });
@@ -223,9 +232,21 @@ function appendToBoard(status, protocolos) {
     const coluna = document.getElementById(status);
     if (!coluna) return;
 
-    protocolos.forEach(p => {
-        coluna.appendChild(criarCard(p));
+    const baseDelay = Math.max(0, STATUSES.indexOf(status)) * 60;
+    if (staggerIndex[status] === undefined) {
+        staggerIndex[status] = 0;
+    }
+
+    protocolos.forEach((p, i) => {
+        const card = criarCard(p);
+        const idx = staggerIndex[status] + i;
+        const delay = baseDelay + Math.min(idx, 12) * 18;
+        card.style.animationDelay = `${delay}ms`;
+        coluna.appendChild(card);
+        setTimeout(() => card.classList.remove('card-appear'), delay + 260);
     });
+
+    staggerIndex[status] += protocolos.length;
 }
 
 function resetBoardAndLoad() {
@@ -237,6 +258,8 @@ function resetBoardAndLoad() {
     exhausted = {};
 
     shouldClear = {};
+    skeletonShown = {};
+    staggerIndex = {};
     STATUSES.forEach(s => {
         offsets[s] = 0;
         loading[s] = false;
@@ -245,6 +268,43 @@ function resetBoardAndLoad() {
         loadPage(s);
     });
     renderActiveFilters();
+}
+
+function showSkeletons(status) {
+    if (skeletonShown[status]) return;
+    const coluna = document.getElementById(status);
+    if (!coluna) return;
+    if (coluna.querySelector('.card-skeleton')) return;
+
+    skeletonShown[status] = true;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < 3; i++) {
+        frag.appendChild(criarSkeletonCard());
+    }
+    coluna.appendChild(frag);
+}
+
+function clearSkeletons(status) {
+    const coluna = document.getElementById(status);
+    if (!coluna) return;
+    coluna.querySelectorAll('.card-skeleton').forEach(el => el.remove());
+}
+
+function criarSkeletonCard() {
+    const card = document.createElement('div');
+    card.className = 'card card-skeleton';
+    card.innerHTML = `
+        <div class="skeleton-bar"></div>
+        <div class="card-body">
+            <div class="skeleton-line w-70"></div>
+            <div class="skeleton-line w-90"></div>
+            <div class="skeleton-line w-60"></div>
+        </div>
+        <div class="card-footer">
+            <div class="skeleton-line w-40"></div>
+        </div>
+    `;
+    return card;
 }
 
 function buscarProtocolos(query) {
@@ -383,7 +443,7 @@ function syncChanges() {
                 }
                 insertCardSorted(coluna, novoCard, p);
                 novoCard.classList.add('card-sync');
-                setTimeout(() => novoCard.classList.remove('card-sync'), 800);
+                setTimeout(() => novoCard.classList.remove('card-sync'), 1020);
             });
 
             if (payload?.server_now) lastSyncAt = payload.server_now;

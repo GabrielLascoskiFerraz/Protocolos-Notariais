@@ -4,6 +4,7 @@
 
 let draggedCard = null;
 window.isDraggingCard = false;
+let dragImageEl = null;
 
 /* =========================
    INÍCIO DO DRAG
@@ -14,10 +15,30 @@ document.addEventListener('dragstart', function (e) {
 
     draggedCard = card;
     window.isDraggingCard = true;
-    card.classList.add('dragging');
+
+    if (dragImageEl) {
+        dragImageEl.remove();
+        dragImageEl = null;
+    }
+    dragImageEl = card.cloneNode(true);
+    dragImageEl.style.position = 'absolute';
+    dragImageEl.style.top = '-9999px';
+    dragImageEl.style.left = '-9999px';
+    dragImageEl.style.width = `${card.offsetWidth}px`;
+    dragImageEl.style.height = `${card.offsetHeight}px`;
+    dragImageEl.style.pointerEvents = 'none';
+    dragImageEl.classList.remove('dragging');
+    document.body.appendChild(dragImageEl);
 
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', card.dataset.id);
+
+    const rect = card.getBoundingClientRect();
+    const offsetX = Number.isFinite(e.clientX) ? Math.max(0, Math.min(rect.width, e.clientX - rect.left)) : 20;
+    const offsetY = Number.isFinite(e.clientY) ? Math.max(0, Math.min(rect.height, e.clientY - rect.top)) : 20;
+    e.dataTransfer.setDragImage(dragImageEl, offsetX, offsetY);
+
+    card.classList.add('dragging');
 });
 
 /* =========================
@@ -29,6 +50,10 @@ document.addEventListener('dragend', function () {
     }
     draggedCard = null;
     window.isDraggingCard = false;
+    if (dragImageEl) {
+        dragImageEl.remove();
+        dragImageEl = null;
+    }
 });
 
 /* =========================
