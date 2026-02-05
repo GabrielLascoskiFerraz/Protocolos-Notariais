@@ -167,30 +167,35 @@
 
         <?php if (!empty($p['apresentante'])): ?>
             <div class="card-apresentante">
+                <span class="card-icon">👤</span>
                 <?= htmlspecialchars($p['apresentante']) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($p['digitador'])): ?>
             <div class="card-digitador">
-                <strong>Digitador:</strong> <strong><?= htmlspecialchars($p['digitador']) ?></strong>
+                <span class="card-icon">⌨️</span>
+                Digitador: <?= htmlspecialchars($p['digitador']) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($p['outorgantes'])): ?>
             <div class="card-outorgantes">
+                <span class="card-icon">📝</span>
                 Outorgante: <?= htmlspecialchars($p['outorgantes']) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($p['outorgados'])): ?>
             <div class="card-outorgados">
-                <strong>Outorgado:</strong> <strong><?= htmlspecialchars($p['outorgados']) ?></strong>
+                <span class="card-icon">🧾</span>
+                Outorgado: <?= htmlspecialchars($p['outorgados']) ?>
             </div>
         <?php endif; ?>
 
         <?php if (!empty($p['data_apresentacao'])): ?>
             <div class="card-data">
+                <span class="card-icon">📅</span>
                 <?= date('d/m/Y', strtotime($p['data_apresentacao'])) ?>
             </div>
         <?php endif; ?>

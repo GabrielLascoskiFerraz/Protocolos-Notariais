@@ -382,11 +382,11 @@ function criarCard(p) {
                    </div>`
                 : ''
             }
-            ${p.apresentante ? `<div class="card-apresentante">${highlightText(p.apresentante, query)}</div>` : ''}
-            ${p.digitador ? `<div class="card-digitador"><strong>Digitador:</strong> <strong>${highlightText(p.digitador, query)}</strong></div>` : ''}
-            ${p.outorgantes ? `<div class="card-outorgantes">Outorgante: ${highlightText(p.outorgantes, query)}</div>` : ''}
-            ${p.outorgados ? `<div class="card-outorgados"><strong>Outorgado:</strong> <strong>${highlightText(p.outorgados, query)}</strong></div>` : ''}
-            ${p.data_apresentacao ? `<div class="card-data">${formatarData(p.data_apresentacao)}</div>` : ''}
+            ${p.apresentante ? `<div class="card-apresentante"><span class="card-icon">👤</span>${highlightText(p.apresentante, query)}</div>` : ''}
+            ${p.digitador ? `<div class="card-digitador"><span class="card-icon">⌨️</span>Digitador: ${highlightText(p.digitador, query)}</div>` : ''}
+            ${p.outorgantes ? `<div class="card-outorgantes"><span class="card-icon">📝</span>Outorgante: ${highlightText(p.outorgantes, query)}</div>` : ''}
+            ${p.outorgados ? `<div class="card-outorgados"><span class="card-icon">🧾</span>Outorgado: ${highlightText(p.outorgados, query)}</div>` : ''}
+            ${p.data_apresentacao ? `<div class="card-data"><span class="card-icon">📅</span>${formatarData(p.data_apresentacao)}</div>` : ''}
         </div>
 
         <div class="card-footer">
