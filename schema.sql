@@ -91,6 +91,20 @@ CREATE TABLE `protocolos_valores` (
 -- --------------------------------------------------------
 
 --
+-- Estrutura para tabela `protocolos_imoveis`
+--
+
+CREATE TABLE `protocolos_imoveis` (
+  `id` int(11) NOT NULL,
+  `protocolo_id` int(11) NOT NULL,
+  `matricula` varchar(120) DEFAULT NULL,
+  `area` varchar(60) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura stand-in para view `vw_protocolos_board`
 -- (Veja abaixo para a visão atual)
 --
@@ -162,6 +176,13 @@ ALTER TABLE `protocolos_valores`
   ADD KEY `protocolo_id` (`protocolo_id`);
 
 --
+-- Índices de tabela `protocolos_imoveis`
+--
+ALTER TABLE `protocolos_imoveis`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `protocolo_id` (`protocolo_id`);
+
+--
 -- AUTO_INCREMENT para tabelas despejadas
 --
 
@@ -190,6 +211,12 @@ ALTER TABLE `protocolos_valores`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de tabela `protocolos_imoveis`
+--
+ALTER TABLE `protocolos_imoveis`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Restrições para tabelas despejadas
 --
 
@@ -204,6 +231,12 @@ ALTER TABLE `protocolos_andamentos`
 --
 ALTER TABLE `protocolos_valores`
   ADD CONSTRAINT `protocolos_valores_ibfk_1` FOREIGN KEY (`protocolo_id`) REFERENCES `protocolos` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `protocolos_imoveis`
+--
+ALTER TABLE `protocolos_imoveis`
+  ADD CONSTRAINT `protocolos_imoveis_ibfk_1` FOREIGN KEY (`protocolo_id`) REFERENCES `protocolos` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -218,21 +218,18 @@
                     </div>
                 </section>
 
-                <!-- IMÓVEL -->
+                <!-- IMÓVEIS -->
                 <section class="modal-section">
-                    <h3>Imóvel</h3>
+                    <h3>Imóveis</h3>
 
-                    <div class="form-grid">
+                    <div class="valores-adicionais">
 
-                        <div class="form-group">
-                            <label>Matrícula</label>
-                            <input type="text" data-field="matricula">
+                        <div class="valores-header">
+                            <strong>Matrículas</strong>
+                            <button class="btn-plus" onclick="adicionarImovel()">＋</button>
                         </div>
 
-                        <div class="form-group">
-                            <label>Área</label>
-                            <input type="text" data-field="area">
-                        </div>
+                        <div id="lista-imoveis"></div>
 
                     </div>
                 </section>

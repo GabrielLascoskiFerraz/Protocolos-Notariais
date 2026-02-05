@@ -93,6 +93,7 @@ function abrirModal(id) {
     }
 
     carregarProtocolo(id);
+    carregarImoveis(id);
     carregarValores(id);
     carregarAndamentos(id);
 }
@@ -252,6 +253,127 @@ function carregarValores(id) {
     if (typeof atualizarCard === 'function') {
         atualizarCard(window.protocoloAtual);
     }
+}
+
+/* =========================================================
+   IMÓVEIS
+   ======================================================= */
+
+function carregarImoveis(id) {
+    fetch(apiUrl(`api/imoveis.php?action=list&protocolo_id=${id}`))
+        .then(res => res.json())
+        .then(imoveis => {
+            const lista = document.getElementById('lista-imoveis');
+            if (!lista) return;
+            lista.innerHTML = '';
+
+            if (!Array.isArray(imoveis)) {
+                console.error('Resposta inválida de imóveis:', imoveis);
+                return;
+            }
+
+            if (!imoveis.length) {
+                lista.innerHTML = '<div class="timeline-empty">Nenhum imóvel registrado.</div>';
+                return;
+            }
+
+            imoveis.forEach(i => {
+                const div = document.createElement('div');
+                div.className = 'valor-item';
+                div.dataset.id = i.id;
+
+                div.innerHTML = `
+                    <input
+                        type="text"
+                        class="imovel-matricula"
+                        placeholder="Matrícula"
+                        value="${i.matricula ?? ''}"
+                        onblur="atualizarImovel(${i.id})"
+                    >
+                    <input
+                        type="text"
+                        class="imovel-area"
+                        placeholder="Área"
+                        value="${i.area ?? ''}"
+                        onblur="atualizarImovel(${i.id})"
+                    >
+                    <button class="btn-delete-valor" onclick="removerImovel(${i.id})">🗑</button>
+                `;
+
+                lista.appendChild(div);
+            });
+        })
+        .catch(err => console.error(err));
+}
+
+function adicionarImovel() {
+    if (!window.protocoloAtual) return;
+
+    fetch(apiUrl('api/imoveis.php?action=create'), {
+        method: 'POST',
+        body: new URLSearchParams({
+            protocolo_id: window.protocoloAtual,
+            matricula: '',
+            area: ''
+        })
+    })
+    .then(res => res.json())
+    .then(json => {
+        if (!json.success) {
+            console.error('Erro ao adicionar imóvel', json);
+            return;
+        }
+        carregarImoveis(window.protocoloAtual);
+        if (typeof atualizarCard === 'function') {
+            atualizarCard(window.protocoloAtual);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function atualizarImovel(id) {
+    const item = document.querySelector(`.valor-item[data-id="${id}"]`);
+    if (!item) return;
+
+    const matricula = item.querySelector('.imovel-matricula')?.value ?? '';
+    const area = item.querySelector('.imovel-area')?.value ?? '';
+
+    fetch(apiUrl('api/imoveis.php?action=update'), {
+        method: 'POST',
+        body: new URLSearchParams({ id, matricula, area })
+    })
+    .then(res => res.json())
+    .then(json => {
+        if (!json.success) {
+            console.error('Erro ao atualizar imóvel', json);
+            return;
+        }
+        if (typeof atualizarCard === 'function') {
+            atualizarCard(window.protocoloAtual);
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+function removerImovel(id) {
+    if (!confirm('Remover este imóvel?')) return;
+
+    fetch(apiUrl('api/imoveis.php?action=delete'), {
+        method: 'POST',
+        body: new URLSearchParams({ id })
+    })
+    .then(res => res.json())
+    .then(json => {
+        if (!json.success) {
+            console.error('Erro ao remover imóvel', json);
+            return;
+        }
+        carregarImoveis(window.protocoloAtual);
+        if (typeof atualizarCard === 'function') {
+            atualizarCard(window.protocoloAtual);
+        }
+    })
+    .catch(err => console.error(err));
 }
 
 /* =========================================================
