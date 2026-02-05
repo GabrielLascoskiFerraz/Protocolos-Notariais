@@ -278,6 +278,7 @@ function criarCard(p) {
             ${p.apresentante ? `<div class="card-apresentante">${escapeHtml(p.apresentante)}</div>` : ''}
             ${p.digitador ? `<div class="card-digitador"><strong>Digitador:</strong> <strong>${escapeHtml(p.digitador)}</strong></div>` : ''}
             ${p.outorgantes ? `<div class="card-outorgantes">Outorgante: ${escapeHtml(p.outorgantes)}</div>` : ''}
+            ${p.outorgados ? `<div class="card-outorgados"><strong>Outorgado:</strong> <strong>${escapeHtml(p.outorgados)}</strong></div>` : ''}
             ${p.data_apresentacao ? `<div class="card-data">${formatarData(p.data_apresentacao)}</div>` : ''}
         </div>
 

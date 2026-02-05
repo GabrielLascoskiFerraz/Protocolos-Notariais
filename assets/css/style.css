@@ -270,6 +270,11 @@ body {
     color: var(--muted);
 }
 
+.card-outorgados {
+    font-size: 12px;
+    color: var(--muted);
+}
+
 .card-data {
     font-size: 12px;
     color: var(--muted);

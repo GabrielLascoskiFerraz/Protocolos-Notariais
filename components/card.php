@@ -183,6 +183,12 @@
             </div>
         <?php endif; ?>
 
+        <?php if (!empty($p['outorgados'])): ?>
+            <div class="card-outorgados">
+                <strong>Outorgado:</strong> <strong><?= htmlspecialchars($p['outorgados']) ?></strong>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($p['data_apresentacao'])): ?>
             <div class="card-data">
                 <?= date('d/m/Y', strtotime($p['data_apresentacao'])) ?>
