@@ -1,4 +1,4 @@
-# Protocolos Notariais
+# Dash Protocolos (Kanban)
 
 Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andamentos), valores adicionais, busca, filtros e sincronização automática.
 
@@ -16,7 +16,7 @@ Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andam
 ├── config/
 │   └── db.php                # Conexão PDO
 ├── api/
-│   ├── protocolos.php        # CRUD + busca + status
+│   ├── protocolos.php        # CRUD + busca + status + sync
 │   ├── andamentos.php        # CRUD histórico
 │   ├── valores.php           # CRUD valores adicionais
 │   └── tags.php              # cores dos atos (se usado)
@@ -28,10 +28,13 @@ Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andam
 │   ├── css/
 │   │   └── style.css
 │   └── js/
+│       ├── base.js           # base URL p/ subpastas
 │       ├── board.js          # drag & drop
 │       ├── modal.js          # abrir/fechar modal
 │       ├── autosave.js       # autosave dos campos
-│       └── search.js         # busca + filtros + autosync
+│       ├── search.js         # busca + filtros + sync incremental
+│       ├── tags.js
+│       └── toast.js
 ├── schema.sql                # Estrutura do banco
 ```
 
@@ -64,9 +67,11 @@ http://localhost/protocolos
 - Modal com campos completos, valores adicionais e andamentos
 - Autosave em tempo real
 - Busca global
-- Filtros por Ato e Digitador
+- Filtros por Ato, Digitador, Tag personalizada e Urgentes
 - Coluna Arquivados oculta por padrao (botao na topbar)
-- Sincronizacao automatica (polling)
+- Tags personalizadas por protocolo
+- Sincronizacao incremental (por `updated_at`)
+- Paginação por coluna (lazy-load)
 
 ## Banco de dados
 
@@ -83,6 +88,7 @@ Campos importantes:
 - `status`: `PARA_DISTRIBUIR`, `EM_ANDAMENTO`, `PARA_CORRECAO`, `LAVRADOS`, `ARQUIVADOS`
 - `urgente`: `0/1`
 - `deletado`: `0/1`
+- `tag_custom`: tag personalizada
 
 ## Endpoints principais (API)
 
@@ -95,8 +101,8 @@ Campos importantes:
   - soft delete (`deletado = 1`)
 
 - `action=search` (GET)
-  - parametros: `q`, `ato`, `digitador`
-  - retorna lista de protocolos
+  - parametros: `q`, `ato`, `digitador`, `urgente`, `tag_custom`, `status`, `limit`, `offset`
+  - retorna: `{ items: [...], server_now: 'YYYY-MM-DD HH:MM:SS' }`
 
 - `action=get` (GET)
   - parametro: `id`
@@ -104,11 +110,15 @@ Campos importantes:
 
 - `action=update` (POST)
   - parametros: `id`, `field`, `value`
-  - campos permitidos: `ficha`, `ato`, `digitador`, `apresentante`, `data_apresentacao`, `contato`, `outorgantes`, `outorgados`, `matricula`, `area`, `valor_ato`, `observacoes`, `urgente`
+  - campos permitidos: `ficha`, `ato`, `digitador`, `apresentante`, `data_apresentacao`, `contato`, `outorgantes`, `outorgados`, `matricula`, `area`, `valor_ato`, `observacoes`, `urgente`, `tag_custom`
 
 - `action=status` (POST)
   - parametros: `id`, `status`
   - atualiza status
+
+- `action=changes` (GET)
+  - parametros: `since`
+  - retorna somente registros alterados desde `since`
 
 ### `api/andamentos.php`
 
@@ -129,14 +139,13 @@ Campos importantes:
 - `action=list`, `create`, `update`, `delete`
   - CRUD de valores adicionais
 
-## Sincronizacao
+## Sincronizacao e desempenho
 
-O front faz polling a cada 8 segundos. Para reduzir custo:
-
-- Aumente `SYNC_INTERVAL_MS` em `assets/js/search.js`
-- Ou implemente sync incremental por `updated_at`
+- O front faz **sync incremental** a cada 8 segundos (`SYNC_INTERVAL_MS`).
+- O carregamento é paginado por coluna (`PAGE_SIZE`).
+- Quando filtros estão ativos, o auto-sync é desativado para evitar “pisca”.
 
 ## Observacoes
 
 - O sistema foi projetado para uso interno com poucos usuarios simultaneos.
-- Em ambientes com grande volume de dados, avalie indices extras e sincronizacao incremental.
+- Em ambientes com grande volume de dados, ajuste `PAGE_SIZE` e `SYNC_INTERVAL_MS`.
