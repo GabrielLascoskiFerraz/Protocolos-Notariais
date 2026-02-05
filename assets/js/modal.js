@@ -13,6 +13,9 @@ const atoOutrosInput = document.getElementById('ato-outros-input');
 const tagSelect = document.getElementById('tag-custom-select');
 const tagOutrosWrapper = document.getElementById('tag-custom-outros');
 const tagOutrosInput = document.getElementById('tag-custom-input');
+const digitadorSelect = document.getElementById('digitador-select');
+const digitadorOutrosWrapper = document.getElementById('digitador-outros');
+const digitadorInput = document.getElementById('digitador-input');
 
 if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
     atoSelect.addEventListener('change', () => {
@@ -50,6 +53,26 @@ if (tagSelect && tagOutrosWrapper && tagOutrosInput) {
 
         if (typeof salvarCampo === 'function' && window.protocoloAtual) {
             salvarCampo('tag_custom', value);
+        }
+    });
+}
+
+if (digitadorSelect && digitadorOutrosWrapper && digitadorInput) {
+    digitadorSelect.addEventListener('change', () => {
+        const value = digitadorSelect.value;
+
+        if (value === 'OUTROS') {
+            digitadorOutrosWrapper.classList.remove('hidden');
+            digitadorInput.value = '';
+            digitadorInput.focus();
+            return;
+        }
+
+        digitadorOutrosWrapper.classList.add('hidden');
+        digitadorInput.value = value;
+
+        if (typeof salvarCampo === 'function' && window.protocoloAtual) {
+            salvarCampo('digitador', value);
         }
     });
 }
@@ -151,6 +174,25 @@ function carregarProtocolo(id) {
                     tagSelect.value = '';
                     tagOutrosWrapper.classList.add('hidden');
                     tagOutrosInput.value = '';
+                }
+            }
+
+            if (digitadorSelect && digitadorOutrosWrapper && digitadorInput) {
+                const digValue = p.digitador ?? '';
+                const hasDigOption = Array.from(digitadorSelect.options).some(opt => opt.value === digValue);
+
+                if (digValue && hasDigOption) {
+                    digitadorSelect.value = digValue;
+                    digitadorOutrosWrapper.classList.add('hidden');
+                    digitadorInput.value = digValue;
+                } else if (digValue) {
+                    digitadorSelect.value = 'OUTROS';
+                    digitadorOutrosWrapper.classList.remove('hidden');
+                    digitadorInput.value = digValue;
+                } else {
+                    digitadorSelect.value = '';
+                    digitadorOutrosWrapper.classList.add('hidden');
+                    digitadorInput.value = '';
                 }
             }
 
@@ -389,7 +431,9 @@ function atualizarValor(id) {
     if (!item) return;
 
     const descricao = item.querySelector('.valor-descricao').value;
-    const valor = item.querySelector('.valor-valor').value;
+    let valor = item.querySelector('.valor-valor').value;
+    const digits = String(valor).replace(/\D/g, '');
+    valor = digits ? (parseInt(digits, 10) / 100).toFixed(2) : '';
 
     fetch(apiUrl('api/valores.php?action=update'), {
         method: 'POST',

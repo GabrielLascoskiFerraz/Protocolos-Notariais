@@ -25,9 +25,8 @@ document.addEventListener('input', function (e) {
 
     // Normaliza campo monetário antes de salvar
     if (el.classList.contains('money')) {
-        value = value
-            .replace(/\./g, '')
-            .replace(',', '.');
+        const digits = String(value).replace(/\D/g, '');
+        value = digits ? (parseInt(digits, 10) / 100).toFixed(2) : '';
     }
 
     clearTimeout(autosaveTimeout);

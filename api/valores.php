@@ -12,6 +12,25 @@ if (!$action) {
 }
 
 try {
+    function normalizarDinheiro($v) {
+        $v = trim((string)$v);
+        if ($v === '') return $v;
+
+        if (strpos($v, ',') !== false) {
+            $v = str_replace(['.', ' '], '', $v);
+            $v = str_replace(',', '.', $v);
+            return $v;
+        }
+
+        $dots = substr_count($v, '.');
+        if ($dots > 1) {
+            $parts = explode('.', $v);
+            $dec = array_pop($parts);
+            $v = implode('', $parts) . '.' . $dec;
+        }
+
+        return $v;
+    }
 
     /* =========================================================
      * LISTAR VALORES DE UM PROTOCOLO
@@ -42,7 +61,7 @@ try {
 
         $protocoloId = (int)$_POST['protocolo_id'];
         $descricao   = trim($_POST['descricao'] ?? '');
-        $valor       = str_replace(',', '.', $_POST['valor'] ?? '');
+        $valor       = normalizarDinheiro($_POST['valor'] ?? '');
 
         if (!is_numeric($valor)) {
             http_response_code(400);
@@ -74,7 +93,7 @@ try {
 
         $id          = (int)$_POST['id'];
         $descricao   = trim($_POST['descricao'] ?? '');
-        $valor       = str_replace(',', '.', $_POST['valor'] ?? '');
+        $valor       = normalizarDinheiro($_POST['valor'] ?? '');
 
         if (!is_numeric($valor)) {
             http_response_code(400);

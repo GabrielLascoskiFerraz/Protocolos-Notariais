@@ -12,6 +12,25 @@ if (!$action) {
 }
 
 try {
+    function normalizarDinheiro($v) {
+        $v = trim((string)$v);
+        if ($v === '') return $v;
+
+        if (strpos($v, ',') !== false) {
+            $v = str_replace(['.', ' '], '', $v);
+            $v = str_replace(',', '.', $v);
+            return $v;
+        }
+
+        $dots = substr_count($v, '.');
+        if ($dots > 1) {
+            $parts = explode('.', $v);
+            $dec = array_pop($parts);
+            $v = implode('', $parts) . '.' . $dec;
+        }
+
+        return $v;
+    }
 
     /* =========================================================
      * CRIAR NOVO PROTOCOLO
@@ -205,6 +224,10 @@ try {
 
         if ($field === 'urgente') {
             $value = (int)$value;
+        }
+
+        if ($field === 'valor_ato') {
+            $value = normalizarDinheiro($value);
         }
 
         $stmt = $pdo->prepare("
