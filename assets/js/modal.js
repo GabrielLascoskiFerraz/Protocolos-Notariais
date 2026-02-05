@@ -41,6 +41,11 @@ function abrirModal(id) {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
+    const content = modal.querySelector('.modal-content');
+    if (content) {
+        content.scrollTop = 0;
+    }
+
     carregarProtocolo(id);
     carregarValores(id);
     carregarAndamentos(id);

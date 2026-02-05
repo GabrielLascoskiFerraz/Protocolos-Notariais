@@ -54,10 +54,15 @@ document.querySelectorAll('.cards').forEach(column => {
         const id = draggedCard.dataset.id;
         const novoStatus = column.id;
 
-        // Move visualmente
-        column.appendChild(draggedCard);
+        // Move visualmente (no topo para feedback imediato)
+        column.prepend(draggedCard);
         draggedCard.dataset.status = novoStatus;
         atualizarAcoesCard(draggedCard, novoStatus);
+        draggedCard.classList.remove('move-animate');
+        void draggedCard.offsetWidth;
+        draggedCard.classList.add('move-animate');
+        setTimeout(() => draggedCard.classList.remove('move-animate'), 280);
+        window.suppressSyncUntil = Date.now() + 1500;
 
         // Atualiza backend
         atualizarStatus(id, novoStatus);

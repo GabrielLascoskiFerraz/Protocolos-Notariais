@@ -40,6 +40,9 @@ if (filterDigitador) {
    ======================================================= */
 
 function buscarProtocolos(query) {
+    if (window.suppressSyncUntil && Date.now() < window.suppressSyncUntil) {
+        return;
+    }
     const params = new URLSearchParams();
     params.set('action', 'search');
     params.set('q', query ?? '');
