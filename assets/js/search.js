@@ -7,47 +7,51 @@ const filterAto = document.getElementById('filter-ato');
 const filterDigitador = document.getElementById('filter-digitador');
 const filterUrgente = document.getElementById('filter-urgente');
 const filterTag = document.getElementById('filter-tag');
+const STATUSES = ['PARA_DISTRIBUIR', 'EM_ANDAMENTO', 'PARA_CORRECAO', 'LAVRADOS', 'ARQUIVADOS'];
+const PAGE_SIZE = 50;
 let searchTimeout = null;
 let lastSyncKey = null;
 let lastSyncHash = null;
+let offsets = {};
+let loading = {};
+let exhausted = {};
+let currentQuery = '';
+let lastSyncAt = null;
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
         clearTimeout(searchTimeout);
 
         const query = this.value.trim();
+        currentQuery = query;
 
         searchTimeout = setTimeout(() => {
-            buscarProtocolos(query);
+            resetBoardAndLoad();
         }, 300);
     });
 }
 
 if (filterAto) {
     filterAto.addEventListener('change', () => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        resetBoardAndLoad();
     });
 }
 
 if (filterDigitador) {
     filterDigitador.addEventListener('change', () => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        resetBoardAndLoad();
     });
 }
 
 if (filterUrgente) {
     filterUrgente.addEventListener('change', () => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        resetBoardAndLoad();
     });
 }
 
 if (filterTag) {
     filterTag.addEventListener('change', () => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        resetBoardAndLoad();
     });
 }
 
@@ -55,13 +59,26 @@ if (filterTag) {
    BUSCAR PROTOCOLOS NO BACKEND
    ======================================================= */
 
-function buscarProtocolos(query) {
+function hasActiveFilters() {
+    return !!(
+        (currentQuery && currentQuery.trim()) ||
+        (filterAto && filterAto.value) ||
+        (filterDigitador && filterDigitador.value) ||
+        (filterUrgente && filterUrgente.value) ||
+        (filterTag && filterTag.value)
+    );
+}
+
+function buildParams(status, offset) {
     if (window.suppressSyncUntil && Date.now() < window.suppressSyncUntil) {
         return;
     }
     const params = new URLSearchParams();
     params.set('action', 'search');
-    params.set('q', query ?? '');
+    params.set('q', currentQuery ?? '');
+    params.set('status', status);
+    params.set('limit', PAGE_SIZE);
+    params.set('offset', offset);
     if (filterAto && filterAto.value) {
         params.set('ato', filterAto.value);
     }
@@ -74,29 +91,56 @@ function buscarProtocolos(query) {
     if (filterTag && filterTag.value.trim()) {
         params.set('tag_custom', filterTag.value.trim());
     }
+    return params;
+}
+
+function loadPage(status) {
+    if (loading[status] || exhausted[status]) return;
+    loading[status] = true;
+
+    const params = buildParams(status, offsets[status] || 0);
+    if (!params) {
+        loading[status] = false;
+        return;
+    }
+
     const url = apiUrl(`api/protocolos.php?${params.toString()}`);
 
     fetch(url)
         .then(res => res.json())
-        .then(protocolos => {
-
+        .then(payload => {
+            const protocolos = payload?.items;
             if (!Array.isArray(protocolos)) {
-                console.error('Resposta inválida da busca:', protocolos);
-                limparBoard();
+                console.error('Resposta inválida da busca:', payload);
+                loading[status] = false;
                 return;
             }
 
-            const key = `${query ?? ''}|${filterAto?.value ?? ''}|${filterDigitador?.value ?? ''}|${filterUrgente?.value ?? ''}|${filterTag?.value ?? ''}`;
+            const key = `${currentQuery ?? ''}|${filterAto?.value ?? ''}|${filterDigitador?.value ?? ''}|${filterUrgente?.value ?? ''}|${filterTag?.value ?? ''}|${status}`;
             const hash = JSON.stringify(protocolos);
-            if (key === lastSyncKey && hash === lastSyncHash) {
+            if (key === lastSyncKey && hash === lastSyncHash && (offsets[status] || 0) === 0) {
+                loading[status] = false;
                 return;
             }
             lastSyncKey = key;
             lastSyncHash = hash;
 
-            atualizarBoard(protocolos);
+            appendToBoard(status, protocolos);
+            offsets[status] = (offsets[status] || 0) + protocolos.length;
+            if (protocolos.length < PAGE_SIZE) {
+                exhausted[status] = true;
+            }
+
+            if (payload?.server_now) {
+                lastSyncAt = payload.server_now;
+            }
+
+            loading[status] = false;
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            loading[status] = false;
+            console.error(err);
+        });
 }
 
 /* =========================================================
@@ -146,16 +190,37 @@ function limparBoard() {
    ATUALIZAR BOARD COM RESULTADO DA BUSCA
    ======================================================= */
 
-function atualizarBoard(protocolos) {
-
-    limparBoard();
+function appendToBoard(status, protocolos) {
+    const coluna = document.getElementById(status);
+    if (!coluna) return;
 
     protocolos.forEach(p => {
-        const coluna = document.getElementById(p.status);
-        if (!coluna) return;
-
         coluna.appendChild(criarCard(p));
     });
+}
+
+function resetBoardAndLoad() {
+    if (searchInput) {
+        currentQuery = searchInput.value.trim();
+    }
+    limparBoard();
+    offsets = {};
+    loading = {};
+    exhausted = {};
+    STATUSES.forEach(s => {
+        offsets[s] = 0;
+        loading[s] = false;
+        exhausted[s] = false;
+        loadPage(s);
+    });
+}
+
+function buscarProtocolos(query) {
+    currentQuery = (query ?? '').trim();
+    if (searchInput) {
+        searchInput.value = currentQuery;
+    }
+    resetBoardAndLoad();
 }
 
 /* =========================================================
@@ -169,6 +234,7 @@ function criarCard(p) {
     card.draggable = true;
     card.dataset.id = p.id;
     card.dataset.status = p.status;
+    card.dataset.urgente = p.urgente == 1 ? '1' : '0';
 
     // Clique no card abre modal
     card.addEventListener('click', () => abrirModal(p.id));
@@ -229,6 +295,58 @@ function criarCard(p) {
     `;
 
     return card;
+}
+
+function insertCardSorted(coluna, card, item) {
+    const newUrg = item.urgente == 1 ? 1 : 0;
+    const newId = parseInt(item.id, 10);
+    const cards = Array.from(coluna.querySelectorAll('.card'));
+
+    for (const c of cards) {
+        const cUrg = parseInt(c.dataset.urgente || '0', 10);
+        const cId = parseInt(c.dataset.id || '0', 10);
+        if (newUrg > cUrg || (newUrg === cUrg && newId > cId)) {
+            coluna.insertBefore(card, c);
+            return;
+        }
+    }
+    coluna.appendChild(card);
+}
+
+function syncChanges() {
+    if (hasActiveFilters()) return;
+    if (!lastSyncAt) return;
+
+    const url = apiUrl(`api/protocolos.php?action=changes&since=${encodeURIComponent(lastSyncAt)}`);
+    fetch(url)
+        .then(res => res.json())
+        .then(payload => {
+            const items = payload?.items;
+            if (!Array.isArray(items) || items.length === 0) {
+                if (payload?.server_now) lastSyncAt = payload.server_now;
+                return;
+            }
+
+            items.forEach(p => {
+                const existing = document.querySelector(`.card[data-id="${p.id}"]`);
+                if (p.deletado == 1) {
+                    existing?.remove();
+                    return;
+                }
+
+                const coluna = document.getElementById(p.status);
+                if (!coluna) return;
+
+                const novoCard = criarCard(p);
+                if (existing) {
+                    existing.remove();
+                }
+                insertCardSorted(coluna, novoCard, p);
+            });
+
+            if (payload?.server_now) lastSyncAt = payload.server_now;
+        })
+        .catch(err => console.error(err));
 }
 
 /* =========================================================
@@ -412,17 +530,32 @@ function iniciarAutoSync() {
     syncInterval = setInterval(() => {
         if (document.hidden) return;
         if (window.isDraggingCard) return;
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        if (hasActiveFilters()) {
+            resetBoardAndLoad();
+        } else {
+            syncChanges();
+        }
     }, SYNC_INTERVAL_MS);
 }
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         if (window.isDraggingCard) return;
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+        if (hasActiveFilters()) {
+            resetBoardAndLoad();
+        } else {
+            syncChanges();
+        }
     }
 });
 
+document.querySelectorAll('.cards').forEach(col => {
+    col.addEventListener('scroll', () => {
+        if (col.scrollTop + col.clientHeight >= col.scrollHeight - 60) {
+            loadPage(col.id);
+        }
+    });
+});
+
+resetBoardAndLoad();
 iniciarAutoSync();

@@ -4,21 +4,6 @@ require __DIR__ . '/config/db.php';
 $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 $baseHref = ($basePath === '') ? '/' : $basePath . '/';
 
-$stmt = $pdo->query("
-    SELECT 
-        p.*,
-        COALESCE(SUM(v.valor),0) AS total_valores,
-        t.cor AS tag_cor
-    FROM protocolos p
-    LEFT JOIN protocolos_valores v ON v.protocolo_id = p.id
-    LEFT JOIN protocolos_tags t ON t.ato = p.ato
-    WHERE p.deletado = 0
-    GROUP BY p.id
-    ORDER BY p.urgente DESC, p.id DESC
-");
-
-$protocolos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
 $board = [
     'PARA_DISTRIBUIR' => [],
     'EM_ANDAMENTO'   => [],
@@ -26,10 +11,6 @@ $board = [
     'LAVRADOS'       => [],
     'ARQUIVADOS'     => []
 ];
-
-foreach ($protocolos as $p) {
-    $board[$p['status']][] = $p;
-}
 
 $atosRaw = $pdo->query("
     SELECT DISTINCT ato

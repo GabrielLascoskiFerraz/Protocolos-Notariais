@@ -32,6 +32,10 @@ try {
         return $v;
     }
 
+    function serverNow(PDO $pdo) {
+        return $pdo->query("SELECT NOW()")->fetchColumn();
+    }
+
     /* =========================================================
      * CRIAR NOVO PROTOCOLO
      * =======================================================*/
@@ -45,7 +49,8 @@ try {
 
         echo json_encode([
             'success' => true,
-            'id'      => $pdo->lastInsertId()
+            'id'      => $pdo->lastInsertId(),
+            'server_now' => serverNow($pdo)
         ]);
         exit;
     }
@@ -64,7 +69,7 @@ try {
         ");
         $stmt->execute([$id]);
 
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'server_now' => serverNow($pdo)]);
         exit;
     }
 
@@ -78,6 +83,13 @@ try {
         $digitador = trim($_GET['digitador'] ?? '');
         $urgente = trim($_GET['urgente'] ?? '');
         $tagCustom = trim($_GET['tag_custom'] ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $limit = (int)($_GET['limit'] ?? 50);
+        $offset = (int)($_GET['offset'] ?? 0);
+
+        if ($limit <= 0) $limit = 50;
+        if ($limit > 200) $limit = 200;
+        if ($offset < 0) $offset = 0;
 
         $sql = "
             SELECT
@@ -92,6 +104,10 @@ try {
             LEFT JOIN protocolos_tags t ON t.ato = p.ato
             WHERE p.deletado = 0
         ";
+
+        if ($status !== '') {
+            $sql .= " AND p.status = :status";
+        }
 
         if ($ato !== '') {
             $sql .= " AND LOWER(TRIM(p.ato)) = :ato";
@@ -123,9 +139,13 @@ try {
         }
 
         $sql .= " ORDER BY p.urgente DESC, p.id DESC";
+        $sql .= " LIMIT :limit OFFSET :offset";
 
         $stmt = $pdo->prepare($sql);
 
+        if ($status !== '') {
+            $stmt->bindValue(':status', $status);
+        }
         if ($ato !== '') {
             $stmt->bindValue(':ato', mb_strtolower($ato, 'UTF-8'));
         }
@@ -149,9 +169,50 @@ try {
             $stmt->bindValue(':q6', $like);
         }
 
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
         $stmt->execute();
 
-        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+        echo json_encode([
+            'items' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'server_now' => serverNow($pdo)
+        ]);
+        exit;
+    }
+
+    /* =========================================================
+     * SINCRONIZAR ALTERACOES
+     * =======================================================*/
+    if ($action === 'changes') {
+
+        $since = trim($_GET['since'] ?? '');
+        if ($since === '') {
+            echo json_encode(['items' => [], 'server_now' => serverNow($pdo)]);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT
+                p.*,
+                (
+                    SELECT COALESCE(SUM(v.valor), 0)
+                    FROM protocolos_valores v
+                    WHERE v.protocolo_id = p.id
+                ) AS total_valores,
+                t.cor AS tag_cor
+            FROM protocolos p
+            LEFT JOIN protocolos_tags t ON t.ato = p.ato
+            WHERE p.updated_at >= DATE_SUB(:since, INTERVAL 2 SECOND)
+            ORDER BY p.updated_at ASC
+        ");
+        $stmt->bindValue(':since', $since);
+        $stmt->execute();
+
+        echo json_encode([
+            'items' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'server_now' => serverNow($pdo)
+        ]);
         exit;
     }
 

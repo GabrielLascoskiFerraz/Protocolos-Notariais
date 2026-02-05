@@ -55,6 +55,9 @@ try {
         ");
         $stmt->execute([$protocoloId, $descricao]);
 
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
+
         echo json_encode([
             'success' => true,
             'id' => $pdo->lastInsertId(),
@@ -84,6 +87,9 @@ try {
         ");
         $stmt->execute([$descricao, $id]);
 
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
+
         echo json_encode(['success' => true]);
         exit;
     }
@@ -100,6 +106,9 @@ try {
             WHERE id = ?
         ");
         $stmt->execute([$id]);
+
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
 
         echo json_encode(['success' => true]);
         exit;

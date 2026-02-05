@@ -75,6 +75,9 @@ try {
         ");
         $stmt->execute([$protocoloId, $descricao, $valor]);
 
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
+
         // recalcula total
         $total = totalValores($pdo, $protocoloId);
 
@@ -125,6 +128,9 @@ try {
         ");
         $stmt->execute([$descricao, $valor, $id]);
 
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
+
         $total = totalValores($pdo, $protocoloId);
 
         echo json_encode([
@@ -163,6 +169,9 @@ try {
             WHERE id = ?
         ");
         $stmt->execute([$id]);
+
+        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $touch->execute([$protocoloId]);
 
         $total = totalValores($pdo, $protocoloId);
 
