@@ -557,13 +557,15 @@ function gerarPdfFicha() {
     Promise.all([
         fetch(apiUrl(`api/protocolos.php?action=get&id=${id}`)).then(r => r.json()),
         fetch(apiUrl(`api/valores.php?action=list&protocolo_id=${id}`)).then(r => r.json()),
-        fetch(apiUrl(`api/andamentos.php?action=list&protocolo_id=${id}`)).then(r => r.json())
+        fetch(apiUrl(`api/andamentos.php?action=list&protocolo_id=${id}`)).then(r => r.json()),
+        fetch(apiUrl(`api/imoveis.php?action=list&protocolo_id=${id}`)).then(r => r.json())
     ])
-    .then(([p, valores, andamentos]) => {
+    .then(([p, valores, andamentos, imoveis]) => {
         if (!p || p.error) return;
 
         const totalAdicional = (valores || []).reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
         const hasValoresAdicionais = Array.isArray(valores) && valores.length > 0;
+        const hasImoveis = Array.isArray(imoveis) && imoveis.length > 0;
 
         const html = `
 <!DOCTYPE html>
@@ -626,10 +628,16 @@ function gerarPdfFicha() {
 
   <div class="section">
     <h3>Imóvel</h3>
-    <div class="grid">
-      <div class="row"><div class="label">Matrícula:</div><div>${p.matricula || ''}</div></div>
-      <div class="row"><div class="label">Área:</div><div>${p.area || ''}</div></div>
-    </div>
+    ${hasImoveis ? `
+    <table>
+      <thead>
+        <tr><th>Matrícula</th><th>Área</th></tr>
+      </thead>
+      <tbody>
+        ${(imoveis || []).map(i => `<tr><td>${i.matricula || ''}</td><td>${i.area || ''}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    ` : '<div class="meta">Sem imóveis registrados.</div>'}
   </div>
 
   <div class="section">

@@ -203,7 +203,7 @@ body {
     display: flex;
     gap: 16px;
     padding: 16px;
-    height: calc(100vh - 72px);
+    height: calc(100vh - 88px);
     overflow-x: auto;
 }
 
