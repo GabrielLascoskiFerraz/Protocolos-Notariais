@@ -67,6 +67,7 @@ $digitadores = $pdo->query("
 
     <script>window.BASE_URL = <?= json_encode($baseHref) ?>;</script>
     <script defer src="assets/js/base.js"></script>
+    <script defer src="assets/js/toast.js"></script>
     <script defer src="assets/js/board.js"></script>
     <script defer src="assets/js/modal.js"></script>
     <script defer src="assets/js/autosave.js"></script>
@@ -110,6 +111,8 @@ $digitadores = $pdo->query("
 </main>
 
 <?php include __DIR__ . '/components/modal.php'; ?>
+
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
 </body>
 </html>

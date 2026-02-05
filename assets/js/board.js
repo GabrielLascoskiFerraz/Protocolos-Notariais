@@ -82,6 +82,17 @@ function atualizarStatus(id, status) {
         if (typeof atualizarCard === 'function') {
             atualizarCard(id);
         }
+        if (typeof showToast === 'function') {
+            const map = {
+                'PARA_DISTRIBUIR': 'Para distribuir',
+                'EM_ANDAMENTO': 'Em andamento',
+                'PARA_CORRECAO': 'Para correção',
+                'LAVRADOS': 'Lavrados',
+                'ARQUIVADOS': 'Arquivados'
+            };
+            const label = map[status] || status.replace(/_/g, ' ').toLowerCase();
+            showToast(`Movido para ${label}`, 'success');
+        }
     })
     .catch(err => console.error(err));
 }
