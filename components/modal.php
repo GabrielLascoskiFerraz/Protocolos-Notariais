@@ -237,6 +237,29 @@
                     </div>
                 </section>
 
+            </div>
+
+            <div class="modal-col">
+                <!-- ANDAMENTOS -->
+                <section class="modal-section">
+                    <h3>Andamentos</h3>
+
+                    <div class="andamentos">
+
+                        <div class="novo-andamento">
+                            <textarea
+                                id="novo-andamento-texto"
+                                rows="2"
+                                placeholder="Adicionar novo andamento…"
+                            ></textarea>
+                            <button class="btn-primary" onclick="adicionarAndamento()">Adicionar</button>
+                        </div>
+
+                        <div id="lista-andamentos" class="timeline"></div>
+
+                    </div>
+                </section>
+
                 <!-- VALORES -->
                 <section class="modal-section">
                     <h3>Valores</h3>
@@ -265,29 +288,6 @@
                             Total adicional:
                             <strong>R$ <span id="total-valores">0,00</span></strong>
                         </div>
-
-                    </div>
-                </section>
-
-            </div>
-
-            <div class="modal-col">
-                <!-- ANDAMENTOS -->
-                <section class="modal-section">
-                    <h3>Andamentos</h3>
-
-                    <div class="andamentos">
-
-                        <div class="novo-andamento">
-                            <textarea
-                                id="novo-andamento-texto"
-                                rows="2"
-                                placeholder="Adicionar novo andamento…"
-                            ></textarea>
-                            <button class="btn-primary" onclick="adicionarAndamento()">Adicionar</button>
-                        </div>
-
-                        <div id="lista-andamentos" class="timeline"></div>
 
                     </div>
                 </section>
