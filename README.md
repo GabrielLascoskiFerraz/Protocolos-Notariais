@@ -1,4 +1,4 @@
-# Dash Protocolos (Kanban)
+# Protocolos Notariais
 
 Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andamentos), valores adicionais, busca, filtros e sincronização automática.
 
@@ -129,35 +129,6 @@ Campos importantes:
 - `action=list`, `create`, `update`, `delete`
   - CRUD de valores adicionais
 
-## Importacao de planilha
-
-Existe o script `importar_planilha.php` que importa um CSV (separador `;`) e cria protocolos, andamentos e valores adicionais.
-
-### Como usar
-
-1) Ajuste o arquivo `Pasta1.csv` (ou altere o caminho no script).
-2) Rode o script via navegador ou CLI:
-
-```
-http://localhost/protocolos/importar_planilha.php
-```
-
-### Campos esperados no CSV
-
-- `Ficha`
-- `Ato`
-- `Digitador`
-- `Apresentante`
-- `Data`
-- `Contato`
-- `Outorgante(s)`
-- `Outorgado(s)`
-- `Área/Matrícula`
-- `Valor do Ato`
-- `Observações`
-- `Último Andamento`
-- `Valores Adicionais`
-
 ## Sincronizacao
 
 O front faz polling a cada 8 segundos. Para reduzir custo:
@@ -169,7 +140,3 @@ O front faz polling a cada 8 segundos. Para reduzir custo:
 
 - O sistema foi projetado para uso interno com poucos usuarios simultaneos.
 - Em ambientes com grande volume de dados, avalie indices extras e sincronizacao incremental.
-
-## Licenca
-
-Uso interno.
