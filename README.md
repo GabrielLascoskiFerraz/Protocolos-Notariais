@@ -27,15 +27,17 @@ Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andam
 ├── assets/
 │   ├── css/
 │   │   └── style.css
+│   ├── img/
+│   │   └── logo.png
 │   └── js/
 │       ├── base.js           # base URL p/ subpastas
 │       ├── board.js          # drag & drop
-│       ├── modal.js          # abrir/fechar modal
+│       ├── modal.js          # abrir/fechar modal + PDF
 │       ├── autosave.js       # autosave dos campos
 │       ├── search.js         # busca + filtros + sync incremental
 │       ├── tags.js
 │       └── toast.js
-├── schema.sql                # Estrutura do banco
+└── schema.sql                # Estrutura do banco
 ```
 
 ## Configuracao
@@ -70,6 +72,7 @@ http://localhost/protocolos
 - Filtros por Ato, Digitador, Tag personalizada e Urgentes
 - Coluna Arquivados oculta por padrao (botao na topbar)
 - Tags personalizadas por protocolo
+- PDF da ficha (A4)
 - Sincronizacao incremental (por `updated_at`)
 - Paginação por coluna (lazy-load)
 
