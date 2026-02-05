@@ -21,6 +21,7 @@ let lastSyncAt = null;
 let shouldClear = {};
 let staggerIndex = {};
 let skeletonShown = {};
+let totalCounts = {};
 
 if (searchInput) {
     searchInput.addEventListener('input', function () {
@@ -160,6 +161,12 @@ function loadPage(status) {
                 limparColuna(status);
                 shouldClear[status] = false;
             }
+
+            if (typeof payload?.total === 'number') {
+                totalCounts[status] = payload.total;
+                updateColumnCount(status);
+            }
+
             clearSkeletons(status);
             appendToBoard(status, protocolos);
             offsets[status] = (offsets[status] || 0) + protocolos.length;
@@ -198,16 +205,22 @@ function atualizarCard(id) {
 
             const novoCard = criarCard(p);
             const atual = document.querySelector(`.card[data-id="${id}"]`);
+            const oldStatus = atual?.dataset?.status;
 
             if (atual) {
                 if (atual.parentElement !== coluna) {
                     coluna.appendChild(novoCard);
                     atual.remove();
+                    if (oldStatus && oldStatus !== p.status) {
+                        adjustColumnCount(oldStatus, -1);
+                        adjustColumnCount(p.status, 1);
+                    }
                 } else {
                     atual.replaceWith(novoCard);
                 }
             } else {
                 coluna.appendChild(novoCard);
+                adjustColumnCount(p.status, 1);
             }
         })
         .catch(err => console.error(err));
@@ -222,6 +235,7 @@ function limparColuna(status) {
     if (coluna) {
         coluna.innerHTML = '';
     }
+    updateColumnCount(status);
 }
 
 /* =========================================================
@@ -247,6 +261,7 @@ function appendToBoard(status, protocolos) {
     });
 
     staggerIndex[status] += protocolos.length;
+    updateColumnCount(status);
 }
 
 function resetBoardAndLoad() {
@@ -259,6 +274,7 @@ function resetBoardAndLoad() {
 
     shouldClear = {};
     skeletonShown = {};
+    totalCounts = {};
     staggerIndex = {};
     STATUSES.forEach(s => {
         offsets[s] = 0;
@@ -268,6 +284,7 @@ function resetBoardAndLoad() {
         loadPage(s);
     });
     renderActiveFilters();
+    updateAllColumnCounts();
 }
 
 function showSkeletons(status) {
@@ -430,7 +447,11 @@ function syncChanges() {
             items.forEach(p => {
                 const existing = document.querySelector(`.card[data-id="${p.id}"]`);
                 if (p.deletado == 1) {
-                    existing?.remove();
+                    if (existing) {
+                        const oldStatus = existing.closest('.cards')?.id;
+                        existing.remove();
+                        adjustColumnCount(oldStatus, -1);
+                    }
                     return;
                 }
 
@@ -439,7 +460,16 @@ function syncChanges() {
 
                 const novoCard = criarCard(p);
                 if (existing) {
+                    const oldStatus = existing.closest('.cards')?.id;
                     existing.remove();
+                    if (oldStatus && oldStatus !== p.status) {
+                        adjustColumnCount(oldStatus, -1);
+                        adjustColumnCount(p.status, 1);
+                    } else if (oldStatus) {
+                        updateColumnCount(oldStatus);
+                    }
+                } else {
+                    adjustColumnCount(p.status, 1);
                 }
                 insertCardSorted(coluna, novoCard, p);
                 novoCard.classList.add('card-sync');
@@ -449,6 +479,62 @@ function syncChanges() {
             if (payload?.server_now) lastSyncAt = payload.server_now;
         })
         .catch(err => console.error(err));
+}
+
+function updateColumnCount(status) {
+    if (!status) return;
+    const coluna = document.getElementById(status);
+    const badge = document.querySelector(`.column-count[data-count="${status}"]`);
+    if (!coluna || !badge) return;
+    if (typeof totalCounts[status] === 'number') {
+        animateBadgeCount(badge, totalCounts[status]);
+        return;
+    }
+    const count = coluna.querySelectorAll('.card:not(.card-skeleton)').length;
+    animateBadgeCount(badge, count);
+}
+
+function updateAllColumnCounts() {
+    STATUSES.forEach(updateColumnCount);
+}
+
+window.updateColumnCount = updateColumnCount;
+window.updateAllColumnCounts = updateAllColumnCounts;
+window.adjustColumnCount = adjustColumnCount;
+
+function animateBadgeCount(badge, target) {
+    const prev = parseInt(badge.dataset.value || badge.textContent || '0', 10);
+    if (!Number.isFinite(target)) return;
+    if (prev === target) return;
+
+    const start = performance.now();
+    const duration = 280;
+    const from = Number.isFinite(prev) ? prev : 0;
+    const to = target;
+
+    function tick(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const current = Math.round(from + (to - from) * t);
+        badge.textContent = current;
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            badge.textContent = to;
+            badge.dataset.value = String(to);
+        }
+    }
+
+    requestAnimationFrame(tick);
+}
+
+function adjustColumnCount(status, delta) {
+    if (!status || !Number.isFinite(delta)) return;
+    if (typeof totalCounts[status] === 'number') {
+        totalCounts[status] = Math.max(0, totalCounts[status] + delta);
+        updateColumnCount(status);
+    } else {
+        updateColumnCount(status);
+    }
 }
 
 /* =========================================================

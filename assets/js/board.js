@@ -79,6 +79,7 @@ document.querySelectorAll('.cards').forEach(column => {
         if (!cardEl) return;
 
         const id = cardEl.dataset.id;
+        const oldStatus = cardEl.dataset.status;
         const novoStatus = column.id;
 
         // Move visualmente (no topo para feedback imediato)
@@ -93,6 +94,12 @@ document.querySelectorAll('.cards').forEach(column => {
 
         // Atualiza backend
         atualizarStatus(id, novoStatus);
+        if (typeof adjustColumnCount === 'function' && oldStatus && oldStatus !== novoStatus) {
+            adjustColumnCount(oldStatus, -1);
+            adjustColumnCount(novoStatus, 1);
+        } else if (typeof updateAllColumnCounts === 'function') {
+            updateAllColumnCounts();
+        }
     });
 });
 
@@ -195,7 +202,12 @@ function excluirProtocolo(id) {
         body: new URLSearchParams({ id })
     })
     .then(() => {
-        document.querySelector(`.card[data-id="${id}"]`)?.remove();
+        const card = document.querySelector(`.card[data-id="${id}"]`);
+        const status = card?.dataset?.status;
+        card?.remove();
+        if (typeof adjustColumnCount === 'function') {
+            adjustColumnCount(status, -1);
+        }
     })
     .catch(err => console.error(err));
 }

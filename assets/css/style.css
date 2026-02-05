@@ -82,7 +82,7 @@ body {
     color: var(--text);
     padding: 8px 12px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 14px;
     cursor: pointer;
     white-space: nowrap;
     transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
@@ -223,6 +223,66 @@ body {
     padding: 12px 14px;
     font-weight: 600;
     font-size: 14px;
+}
+
+.column-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.column-title {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    font-weight: 700;
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.column-para-distribuir .column-title {
+    background: linear-gradient(135deg, #e0f2fe, #f8fafc);
+    border-color: #bae6fd;
+}
+
+.column-em-andamento .column-title {
+    background: linear-gradient(135deg, #dcfce7, #f8fafc);
+    border-color: #86efac;
+}
+
+.column-para-correcao .column-title {
+    background: linear-gradient(135deg, #fef9c3, #f8fafc);
+    border-color: #fde047;
+}
+
+.column-lavrados .column-title {
+    background: linear-gradient(135deg, #e9d5ff, #f8fafc);
+    border-color: #c4b5fd;
+}
+
+.column-arquivados .column-title {
+    background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+    border-color: #cbd5f5;
+}
+
+.column-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #334155;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
 }
 
 .add-card {

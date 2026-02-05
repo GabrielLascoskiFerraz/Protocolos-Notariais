@@ -91,6 +91,56 @@ try {
         if ($limit > 200) $limit = 200;
         if ($offset < 0) $offset = 0;
 
+        $where = ["p.deletado = 0"];
+        $binds = [];
+
+        if ($status !== '') {
+            $where[] = "p.status = :status";
+            $binds[':status'] = $status;
+        }
+
+        if ($ato !== '') {
+            $where[] = "LOWER(TRIM(p.ato)) = :ato";
+            $binds[':ato'] = mb_strtolower($ato, 'UTF-8');
+        }
+
+        if ($digitador !== '') {
+            $where[] = "p.digitador = :digitador";
+            $binds[':digitador'] = $digitador;
+        }
+
+        if ($urgente !== '') {
+            $where[] = "p.urgente = :urgente";
+            $binds[':urgente'] = (int)$urgente;
+        }
+
+        if ($tagCustom !== '') {
+            $where[] = "LOWER(TRIM(p.tag_custom)) = :tag_custom";
+            $binds[':tag_custom'] = mb_strtolower($tagCustom, 'UTF-8');
+        }
+
+        if ($q !== '') {
+            $where[] = "
+                (
+                    CAST(p.ficha AS CHAR) LIKE :q1
+                    OR p.digitador LIKE :q2
+                    OR p.apresentante LIKE :q3
+                    OR p.outorgantes LIKE :q4
+                    OR p.outorgados LIKE :q5
+                    OR p.ato LIKE :q6
+                )
+            ";
+            $like = "%{$q}%";
+            $binds[':q1'] = $like;
+            $binds[':q2'] = $like;
+            $binds[':q3'] = $like;
+            $binds[':q4'] = $like;
+            $binds[':q5'] = $like;
+            $binds[':q6'] = $like;
+        }
+
+        $whereSql = "WHERE " . implode(' AND ', $where);
+
         $sql = "
             SELECT
                 p.*,
@@ -102,71 +152,20 @@ try {
                 t.cor AS tag_cor
             FROM protocolos p
             LEFT JOIN protocolos_tags t ON t.ato = p.ato
-            WHERE p.deletado = 0
+            {$whereSql}
         ";
-
-        if ($status !== '') {
-            $sql .= " AND p.status = :status";
-        }
-
-        if ($ato !== '') {
-            $sql .= " AND LOWER(TRIM(p.ato)) = :ato";
-        }
-
-        if ($digitador !== '') {
-            $sql .= " AND p.digitador = :digitador";
-        }
-
-        if ($urgente !== '') {
-            $sql .= " AND p.urgente = :urgente";
-        }
-
-        if ($tagCustom !== '') {
-            $sql .= " AND LOWER(TRIM(p.tag_custom)) = :tag_custom";
-        }
-
-        if ($q !== '') {
-            $sql .= "
-                AND (
-                    CAST(p.ficha AS CHAR) LIKE :q1
-                    OR p.digitador LIKE :q2
-                    OR p.apresentante LIKE :q3
-                    OR p.outorgantes LIKE :q4
-                    OR p.outorgados LIKE :q5
-                    OR p.ato LIKE :q6
-                )
-            ";
-        }
 
         $sql .= " ORDER BY p.urgente DESC, p.id DESC";
         $sql .= " LIMIT :limit OFFSET :offset";
 
         $stmt = $pdo->prepare($sql);
 
-        if ($status !== '') {
-            $stmt->bindValue(':status', $status);
-        }
-        if ($ato !== '') {
-            $stmt->bindValue(':ato', mb_strtolower($ato, 'UTF-8'));
-        }
-        if ($digitador !== '') {
-            $stmt->bindValue(':digitador', $digitador);
-        }
-        if ($urgente !== '') {
-            $stmt->bindValue(':urgente', (int)$urgente, PDO::PARAM_INT);
-        }
-        if ($tagCustom !== '') {
-            $stmt->bindValue(':tag_custom', mb_strtolower($tagCustom, 'UTF-8'));
-        }
-
-        if ($q !== '') {
-            $like = "%{$q}%";
-            $stmt->bindValue(':q1', $like);
-            $stmt->bindValue(':q2', $like);
-            $stmt->bindValue(':q3', $like);
-            $stmt->bindValue(':q4', $like);
-            $stmt->bindValue(':q5', $like);
-            $stmt->bindValue(':q6', $like);
+        foreach ($binds as $key => $value) {
+            if ($key === ':urgente') {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $value);
+            }
         }
 
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -174,8 +173,20 @@ try {
 
         $stmt->execute();
 
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM protocolos p {$whereSql}");
+        foreach ($binds as $key => $value) {
+            if ($key === ':urgente') {
+                $countStmt->bindValue($key, $value, PDO::PARAM_INT);
+            } else {
+                $countStmt->bindValue($key, $value);
+            }
+        }
+        $countStmt->execute();
+        $total = (int)$countStmt->fetchColumn();
+
         echo json_encode([
             'items' => $stmt->fetchAll(PDO::FETCH_ASSOC),
+            'total' => $total,
             'server_now' => serverNow($pdo)
         ]);
         exit;
