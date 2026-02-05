@@ -115,6 +115,21 @@ body {
     transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
 }
 
+#filter-urgente {
+    border-color: #fecaca;
+    background:
+        linear-gradient(0deg, #fff5f5, #fff5f5),
+        linear-gradient(45deg, transparent 50%, #ef4444 50%),
+        linear-gradient(135deg, #ef4444 50%, transparent 50%),
+        linear-gradient(to right, #fecaca, #fecaca);
+    color: #991b1b;
+    font-weight: 600;
+}
+
+#filter-tag {
+    min-width: 160px;
+}
+
 .filters select:hover {
     border-color: #cbd5f5;
     box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
@@ -698,6 +713,17 @@ body {
 
 .tag-urgente {
     background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.tag-custom {
+    background: #0ea5e9;
     color: #fff;
     font-size: 11px;
     font-weight: 700;

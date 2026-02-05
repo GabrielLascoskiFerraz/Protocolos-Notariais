@@ -155,6 +155,23 @@
                         <input type="text" data-field="contato">
                     </div>
 
+                    <div class="form-group">
+                        <label>Tag personalizada</label>
+                        <select id="tag-custom-select">
+                            <option value="">Selecione…</option>
+                            <?php if (!empty($tagsMap)): ?>
+                                <?php foreach ($tagsMap as $key => $tag): ?>
+                                    <option value="<?= htmlspecialchars($tag) ?>"><?= htmlspecialchars($tag) ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <option value="OUTROS">OUTROS</option>
+                        </select>
+                        <div id="tag-custom-outros" class="form-group hidden">
+                            <label>Outra tag</label>
+                            <input type="text" id="tag-custom-input" data-field="tag_custom" placeholder="Ex.: FAZER ITBI">
+                        </div>
+                    </div>
+
                 </div>
             </section>
 

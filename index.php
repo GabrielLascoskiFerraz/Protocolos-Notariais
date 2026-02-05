@@ -53,6 +53,22 @@ $digitadores = $pdo->query("
     WHERE deletado = 0 AND digitador IS NOT NULL AND digitador <> ''
     ORDER BY digitador
 ")->fetchAll(PDO::FETCH_COLUMN);
+
+$tagsRaw = $pdo->query("
+    SELECT DISTINCT tag_custom
+    FROM protocolos
+    WHERE deletado = 0 AND tag_custom IS NOT NULL AND tag_custom <> ''
+")->fetchAll(PDO::FETCH_COLUMN);
+
+$tagsMap = [];
+foreach ($tagsRaw as $tag) {
+    $key = mb_strtolower(trim($tag), 'UTF-8');
+    if ($key === '') continue;
+    if (!isset($tagsMap[$key])) {
+        $tagsMap[$key] = $tag;
+    }
+}
+ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -92,6 +108,16 @@ $digitadores = $pdo->query("
             <option value="">Todos os atos</option>
             <?php foreach ($atosMap as $key => $ato): ?>
                 <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ato) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <select id="filter-urgente">
+            <option value="">Todos</option>
+            <option value="1">Somente urgentes</option>
+        </select>
+        <select id="filter-tag">
+            <option value="">Todas as tags</option>
+            <?php foreach ($tagsMap as $key => $tag): ?>
+                <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($tag) ?></option>
             <?php endforeach; ?>
         </select>
         <select id="filter-digitador">

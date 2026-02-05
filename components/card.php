@@ -139,7 +139,7 @@
         style="background-color: <?= htmlspecialchars($bg) ?>; color: <?= htmlspecialchars($fg) ?>"
         title="<?= htmlspecialchars($ato) ?>"
     >
-        <?= htmlspecialchars($ato) ?>
+        <?= htmlspecialchars(mb_strtoupper($ato, 'UTF-8')) ?>
     </div>
 
     <!-- CONTEÚDO PRINCIPAL -->
@@ -151,10 +151,17 @@
                 <?php if (!empty($p['urgente'])): ?>
                     <span class="tag-urgente">Urgente</span>
                 <?php endif; ?>
+                <?php if (!empty($p['tag_custom'])): ?>
+                    <span class="tag-custom"><?= htmlspecialchars($p['tag_custom']) ?></span>
+                <?php endif; ?>
             </div>
         <?php elseif (!empty($p['urgente'])): ?>
             <div class="card-ficha">
                 <span class="tag-urgente">Urgente</span>
+            </div>
+        <?php elseif (!empty($p['tag_custom'])): ?>
+            <div class="card-ficha">
+                <span class="tag-custom"><?= htmlspecialchars($p['tag_custom']) ?></span>
             </div>
         <?php endif; ?>
 
@@ -166,7 +173,7 @@
 
         <?php if (!empty($p['digitador'])): ?>
             <div class="card-digitador">
-                Digitador: <?= htmlspecialchars($p['digitador']) ?>
+                <strong>Digitador:</strong> <strong><?= htmlspecialchars($p['digitador']) ?></strong>
             </div>
         <?php endif; ?>
 

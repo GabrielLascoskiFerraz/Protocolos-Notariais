@@ -10,6 +10,9 @@ const modalFicha = document.getElementById('modal-ficha');
 const atoSelect = document.getElementById('ato-select');
 const atoOutrosWrapper = document.getElementById('ato-outros-wrapper');
 const atoOutrosInput = document.getElementById('ato-outros-input');
+const tagSelect = document.getElementById('tag-custom-select');
+const tagOutrosWrapper = document.getElementById('tag-custom-outros');
+const tagOutrosInput = document.getElementById('tag-custom-input');
 
 if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
     atoSelect.addEventListener('change', () => {
@@ -27,6 +30,26 @@ if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
 
         if (typeof salvarCampo === 'function' && window.protocoloAtual) {
             salvarCampo('ato', value);
+        }
+    });
+}
+
+if (tagSelect && tagOutrosWrapper && tagOutrosInput) {
+    tagSelect.addEventListener('change', () => {
+        const value = tagSelect.value;
+
+        if (value === 'OUTROS') {
+            tagOutrosWrapper.classList.remove('hidden');
+            tagOutrosInput.value = '';
+            tagOutrosInput.focus();
+            return;
+        }
+
+        tagOutrosWrapper.classList.add('hidden');
+        tagOutrosInput.value = value;
+
+        if (typeof salvarCampo === 'function' && window.protocoloAtual) {
+            salvarCampo('tag_custom', value);
         }
     });
 }
@@ -109,6 +132,25 @@ function carregarProtocolo(id) {
                     atoSelect.value = '';
                     atoOutrosWrapper.classList.add('hidden');
                     atoOutrosInput.value = '';
+                }
+            }
+
+            if (tagSelect && tagOutrosWrapper && tagOutrosInput) {
+                const tagValue = p.tag_custom ?? '';
+                const hasTagOption = Array.from(tagSelect.options).some(opt => opt.value === tagValue);
+
+                if (tagValue && hasTagOption) {
+                    tagSelect.value = tagValue;
+                    tagOutrosWrapper.classList.add('hidden');
+                    tagOutrosInput.value = tagValue;
+                } else if (tagValue) {
+                    tagSelect.value = 'OUTROS';
+                    tagOutrosWrapper.classList.remove('hidden');
+                    tagOutrosInput.value = tagValue;
+                } else {
+                    tagSelect.value = '';
+                    tagOutrosWrapper.classList.add('hidden');
+                    tagOutrosInput.value = '';
                 }
             }
 

@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS protocolos (
 
     valor_ato DECIMAL(14,2),
 
+    tag_custom VARCHAR(120),
+
     status ENUM(
         'PARA_DISTRIBUIR',
         'EM_ANDAMENTO',

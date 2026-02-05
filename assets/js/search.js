@@ -5,6 +5,8 @@
 const searchInput = document.getElementById('search');
 const filterAto = document.getElementById('filter-ato');
 const filterDigitador = document.getElementById('filter-digitador');
+const filterUrgente = document.getElementById('filter-urgente');
+const filterTag = document.getElementById('filter-tag');
 let searchTimeout = null;
 let lastSyncKey = null;
 let lastSyncHash = null;
@@ -35,6 +37,20 @@ if (filterDigitador) {
     });
 }
 
+if (filterUrgente) {
+    filterUrgente.addEventListener('change', () => {
+        const termo = searchInput?.value ?? '';
+        buscarProtocolos(termo);
+    });
+}
+
+if (filterTag) {
+    filterTag.addEventListener('change', () => {
+        const termo = searchInput?.value ?? '';
+        buscarProtocolos(termo);
+    });
+}
+
 /* =========================================================
    BUSCAR PROTOCOLOS NO BACKEND
    ======================================================= */
@@ -52,6 +68,12 @@ function buscarProtocolos(query) {
     if (filterDigitador && filterDigitador.value) {
         params.set('digitador', filterDigitador.value);
     }
+    if (filterUrgente && filterUrgente.value) {
+        params.set('urgente', filterUrgente.value);
+    }
+    if (filterTag && filterTag.value.trim()) {
+        params.set('tag_custom', filterTag.value.trim());
+    }
     const url = apiUrl(`api/protocolos.php?${params.toString()}`);
 
     fetch(url)
@@ -64,7 +86,7 @@ function buscarProtocolos(query) {
                 return;
             }
 
-            const key = `${query ?? ''}|${filterAto?.value ?? ''}|${filterDigitador?.value ?? ''}`;
+            const key = `${query ?? ''}|${filterAto?.value ?? ''}|${filterDigitador?.value ?? ''}|${filterUrgente?.value ?? ''}|${filterTag?.value ?? ''}`;
             const hash = JSON.stringify(protocolos);
             if (key === lastSyncKey && hash === lastSyncHash) {
                 return;
@@ -161,7 +183,7 @@ function criarCard(p) {
 
     card.innerHTML = `
         <div class="card-tag" style="background-color: ${corTag}; color: ${corTexto}">
-            ${escapeHtml(p.ato || '')}
+            ${escapeHtml((p.ato || '').toUpperCase())}
         </div>
 
         <div class="card-body">
@@ -169,11 +191,18 @@ function criarCard(p) {
                 ? `<div class="card-ficha">
                         ${p.ficha ? `<span>Ficha ${p.ficha}</span>` : ''}
                         ${p.urgente == 1 ? `<span class="tag-urgente">Urgente</span>` : ''}
+                        ${p.tag_custom ? `<span class="tag-custom">${escapeHtml(p.tag_custom)}</span>` : ''}
+                   </div>`
+                : ''
+            }
+            ${(p.tag_custom && !p.ficha && p.urgente != 1)
+                ? `<div class="card-ficha">
+                        <span class="tag-custom">${escapeHtml(p.tag_custom)}</span>
                    </div>`
                 : ''
             }
             ${p.apresentante ? `<div class="card-apresentante">${escapeHtml(p.apresentante)}</div>` : ''}
-            ${p.digitador ? `<div class="card-digitador">Digitador: ${escapeHtml(p.digitador)}</div>` : ''}
+            ${p.digitador ? `<div class="card-digitador"><strong>Digitador:</strong> <strong>${escapeHtml(p.digitador)}</strong></div>` : ''}
             ${p.outorgantes ? `<div class="card-outorgantes">Outorgante: ${escapeHtml(p.outorgantes)}</div>` : ''}
             ${p.data_apresentacao ? `<div class="card-data">${formatarData(p.data_apresentacao)}</div>` : ''}
         </div>

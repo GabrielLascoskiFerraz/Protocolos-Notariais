@@ -57,6 +57,8 @@ try {
         $q = trim($_GET['q'] ?? '');
         $ato = trim($_GET['ato'] ?? '');
         $digitador = trim($_GET['digitador'] ?? '');
+        $urgente = trim($_GET['urgente'] ?? '');
+        $tagCustom = trim($_GET['tag_custom'] ?? '');
 
         $sql = "
             SELECT
@@ -78,6 +80,14 @@ try {
 
         if ($digitador !== '') {
             $sql .= " AND p.digitador = :digitador";
+        }
+
+        if ($urgente !== '') {
+            $sql .= " AND p.urgente = :urgente";
+        }
+
+        if ($tagCustom !== '') {
+            $sql .= " AND LOWER(TRIM(p.tag_custom)) = :tag_custom";
         }
 
         if ($q !== '') {
@@ -102,6 +112,12 @@ try {
         }
         if ($digitador !== '') {
             $stmt->bindValue(':digitador', $digitador);
+        }
+        if ($urgente !== '') {
+            $stmt->bindValue(':urgente', (int)$urgente, PDO::PARAM_INT);
+        }
+        if ($tagCustom !== '') {
+            $stmt->bindValue(':tag_custom', mb_strtolower($tagCustom, 'UTF-8'));
         }
 
         if ($q !== '') {
@@ -177,7 +193,8 @@ try {
             'area',
             'valor_ato',
             'observacoes',
-            'urgente'
+            'urgente',
+            'tag_custom'
         ];
 
         if (!in_array($field, $allowed, true)) {
