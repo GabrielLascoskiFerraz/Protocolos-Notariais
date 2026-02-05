@@ -427,6 +427,7 @@ function gerarPdfFicha() {
         if (!p || p.error) return;
 
         const totalAdicional = (valores || []).reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
+        const hasValoresAdicionais = Array.isArray(valores) && valores.length > 0;
 
         const html = `
 <!DOCTYPE html>
@@ -462,7 +463,10 @@ function gerarPdfFicha() {
       <img src="${apiUrl('assets/img/logo.png')}" alt="Logo" style="width:36px; height:auto;">
     <div class="title">Ficha ${(!p.ficha || p.ficha == 0) ? '__________' : p.ficha} — ${p.ato || ''}</div>
     </div>
-    <div class="meta">${new Date().toLocaleDateString('pt-BR')}</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      ${p.urgente == 1 ? '<span class="badge badge-urgent">URGENTE</span>' : ''}
+      <div class="meta">${new Date().toLocaleDateString('pt-BR')}</div>
+    </div>
   </div>
 
   <div class="section">
@@ -494,16 +498,21 @@ function gerarPdfFicha() {
 
   <div class="section">
     <h3>Valores</h3>
-    <div class="row"><div class="label">Valor do ato:</div><div>R$ ${Number(p.valor_ato || 0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</div></div>
+    <div class="row">
+      <div class="label">Valor do ato:</div>
+      <div>${(p.valor_ato && Number(p.valor_ato) > 0) ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : 'R$'}</div>
+    </div>
+    ${hasValoresAdicionais ? `
     <table>
       <thead>
         <tr><th>Descrição</th><th class="right">Valor</th></tr>
       </thead>
       <tbody>
-        ${(valores || []).map(v => `<tr><td>${v.descricao || ''}</td><td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>`).join('') || '<tr><td colspan="2">Sem valores adicionais</td></tr>'}
+        ${(valores || []).map(v => `<tr><td>${v.descricao || ''}</td><td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>`).join('')}
         <tr><td><strong>Total adicional</strong></td><td class="right"><strong>R$ ${Number(totalAdicional).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong></td></tr>
       </tbody>
     </table>
+    ` : ''}
   </div>
 
   <div class="section">
