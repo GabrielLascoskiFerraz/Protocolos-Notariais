@@ -259,6 +259,7 @@ function adicionarAndamento() {
     if (!window.protocoloAtual) return;
 
     const textarea = document.getElementById('novo-andamento-texto');
+    if (!textarea) return;
     const texto = textarea.value.trim();
 
     if (!texto) return;
@@ -293,7 +294,13 @@ function carregarAndamentos(id) {
         .then(andamentos => {
 
             const lista = document.getElementById('lista-andamentos');
+            if (!lista) return;
             lista.innerHTML = '';
+
+            if (!Array.isArray(andamentos)) {
+                console.error('Resposta inválida de andamentos:', andamentos);
+                return;
+            }
 
             if (!andamentos.length) {
                 lista.innerHTML = '<div class="timeline-empty">Nenhum andamento registrado.</div>';
@@ -332,6 +339,7 @@ function carregarAndamentos(id) {
    ======================================================= */
 
 function editarAndamento(id) {
+    if (!window.protocoloAtual) return;
     const textoEl = document.querySelector(`.timeline-text[data-id="${id}"]`);
     if (!textoEl) return;
 
@@ -358,6 +366,7 @@ function editarAndamento(id) {
 }
 
 function removerAndamento(id) {
+    if (!window.protocoloAtual) return;
     if (!confirm('Remover este andamento?')) return;
 
     fetch(apiUrl('api/andamentos.php?action=delete'), {
@@ -392,6 +401,7 @@ function formatarValor(valor) {
 }
 
 function formatarDataHora(data) {
+    if (!data) return '';
     const d = new Date(data.replace(' ', 'T'));
     return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {
         hour: '2-digit',

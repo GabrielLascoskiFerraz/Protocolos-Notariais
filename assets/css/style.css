@@ -694,6 +694,14 @@ body {
     padding: 12px;
 }
 
+.valores-adicionais {
+    border: 1px solid #eef2f7;
+    border-radius: 14px;
+    padding: 10px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
 .valores-header {
     display: flex;
     justify-content: space-between;
@@ -709,8 +717,18 @@ body {
 }
 
 .valor-item input {
-    padding: 6px 8px;
+    padding: 8px 10px;
     font-size: 13px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.valor-item input:focus {
+    outline: none;
+    border-color: #93c5fd;
+    box-shadow: var(--ring);
 }
 
 .btn-delete-valor {
