@@ -530,22 +530,16 @@ function iniciarAutoSync() {
     syncInterval = setInterval(() => {
         if (document.hidden) return;
         if (window.isDraggingCard) return;
-        if (hasActiveFilters()) {
-            resetBoardAndLoad();
-        } else {
-            syncChanges();
-        }
+        if (hasActiveFilters()) return;
+        syncChanges();
     }, SYNC_INTERVAL_MS);
 }
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
         if (window.isDraggingCard) return;
-        if (hasActiveFilters()) {
-            resetBoardAndLoad();
-        } else {
-            syncChanges();
-        }
+        if (hasActiveFilters()) return;
+        syncChanges();
     }
 });
 
