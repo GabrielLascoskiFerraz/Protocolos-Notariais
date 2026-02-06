@@ -490,6 +490,11 @@ function updateColumnCount(status) {
         animateBadgeCount(badge, totalCounts[status]);
         return;
     }
+    const current = parseInt(badge.dataset.value || badge.textContent || '0', 10);
+    if (Number.isFinite(current)) {
+        animateBadgeCount(badge, current);
+        return;
+    }
     const count = coluna.querySelectorAll('.card:not(.card-skeleton)').length;
     animateBadgeCount(badge, count);
 }
@@ -533,7 +538,14 @@ function adjustColumnCount(status, delta) {
         totalCounts[status] = Math.max(0, totalCounts[status] + delta);
         updateColumnCount(status);
     } else {
-        updateColumnCount(status);
+        const badge = document.querySelector(`.column-count[data-count="${status}"]`);
+        const current = badge ? parseInt(badge.dataset.value || badge.textContent || '0', 10) : NaN;
+        if (Number.isFinite(current)) {
+            totalCounts[status] = Math.max(0, current + delta);
+            updateColumnCount(status);
+        } else {
+            updateColumnCount(status);
+        }
     }
 }
 
