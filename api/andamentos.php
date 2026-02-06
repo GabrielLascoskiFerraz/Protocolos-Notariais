@@ -87,8 +87,13 @@ try {
         ");
         $stmt->execute([$descricao, $id]);
 
-        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-        $touch->execute([$protocoloId]);
+        $pidStmt = $pdo->prepare("SELECT protocolo_id FROM protocolos_andamentos WHERE id = ?");
+        $pidStmt->execute([$id]);
+        $protocoloId = (int)$pidStmt->fetchColumn();
+        if ($protocoloId > 0) {
+            $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $touch->execute([$protocoloId]);
+        }
 
         echo json_encode(['success' => true]);
         exit;
@@ -101,14 +106,20 @@ try {
 
         $id = (int)$_POST['id'];
 
+        $pidStmt = $pdo->prepare("SELECT protocolo_id FROM protocolos_andamentos WHERE id = ?");
+        $pidStmt->execute([$id]);
+        $protocoloId = (int)$pidStmt->fetchColumn();
+
         $stmt = $pdo->prepare("
             DELETE FROM protocolos_andamentos
             WHERE id = ?
         ");
         $stmt->execute([$id]);
 
-        $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-        $touch->execute([$protocoloId]);
+        if ($protocoloId > 0) {
+            $touch = $pdo->prepare("UPDATE protocolos SET updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $touch->execute([$protocoloId]);
+        }
 
         echo json_encode(['success' => true]);
         exit;
