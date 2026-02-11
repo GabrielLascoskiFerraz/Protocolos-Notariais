@@ -1,11 +1,13 @@
-(function () {
-    const base = (window.BASE_URL || './').replace(/\\/g, '/');
-    const normalized = base.endsWith('/') ? base : base + '/';
+const base = (window.BASE_URL || './').replace(/\\/g, '/');
+const normalized = base.endsWith('/') ? base : base + '/';
 
-    window.BASE_URL = normalized;
+export const BASE_URL = normalized;
 
-    window.apiUrl = function (path) {
-        const clean = String(path || '').replace(/^\/+/, '');
-        return normalized + clean;
-    };
-})();
+export function apiUrl(path) {
+    const clean = String(path || '').replace(/^\/+/, '');
+    return normalized + clean;
+}
+
+// Retrocompatibilidade: expor no window para onclick handlers inline do PHP
+window.BASE_URL = normalized;
+window.apiUrl = apiUrl;

@@ -1,14 +1,12 @@
+import { apiUrl } from './base.js';
+
 /* =========================================================
    TAGS (CORES DOS ATOS)
    ======================================================= */
 
 let tagsMap = {};
 
-/* =========================================================
-   CARREGAR TAGS DO BACKEND
-   ======================================================= */
-
-function carregarTags() {
+export function carregarTags() {
     fetch(apiUrl('api/tags.php?action=list'))
         .then(res => res.json())
         .then(tags => {
@@ -22,29 +20,19 @@ function carregarTags() {
         .catch(err => console.error(err));
 }
 
-/* =========================================================
-   APLICAR CORES NOS CARDS
-   ======================================================= */
-
-function aplicarTags() {
+export function aplicarTags() {
     document.querySelectorAll('.card').forEach(card => {
-
         const tag = card.querySelector('.card-tag');
         if (!tag) return;
 
         const ato = tag.textContent.trim();
-
         if (tagsMap[ato]) {
             tag.style.backgroundColor = tagsMap[ato];
         }
     });
 }
 
-/* =========================================================
-   CRIAR / ATUALIZAR TAG AUTOMATICAMENTE
-   ======================================================= */
-
-function salvarTag(ato, cor) {
+export function salvarTag(ato, cor) {
     if (!ato || !cor) return;
 
     fetch(apiUrl('api/tags.php?action=create'), {
@@ -61,25 +49,16 @@ function salvarTag(ato, cor) {
     .catch(err => console.error(err));
 }
 
-/* =========================================================
-   GERAR COR PADRÃO (CASO NÃO TENHA)
-   ======================================================= */
-
-function gerarCorPadrao(ato) {
-    // hash simples e consistente
+export function gerarCorPadrao(ato) {
     let hash = 0;
     for (let i = 0; i < ato.length; i++) {
         hash = ato.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 65%, 45%)`;
 }
 
-/* =========================================================
-   OBSERVAR MUDANÇAS NO DOM (BUSCA / DRAG)
-   ======================================================= */
-
+/* Observar mudanças no DOM (busca / drag) */
 const observer = new MutationObserver(() => {
     aplicarTags();
 });
@@ -89,10 +68,7 @@ observer.observe(document.body, {
     subtree: true
 });
 
-/* =========================================================
-   INIT
-   ======================================================= */
-
+/* Init */
 document.addEventListener('DOMContentLoaded', () => {
     carregarTags();
 });

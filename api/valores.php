@@ -69,6 +69,18 @@ try {
             exit;
         }
 
+        if (mb_strlen($descricao, 'UTF-8') > 200) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Descrição do valor excede 200 caracteres']);
+            exit;
+        }
+
+        if ((float)$valor > 99999999.99) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Valor excede o máximo permitido']);
+            exit;
+        }
+
         $stmt = $pdo->prepare("
             INSERT INTO protocolos_valores (protocolo_id, descricao, valor)
             VALUES (?, ?, ?)
@@ -101,6 +113,18 @@ try {
         if (!is_numeric($valor)) {
             http_response_code(400);
             echo json_encode(['error' => 'Valor inválido']);
+            exit;
+        }
+
+        if (mb_strlen($descricao, 'UTF-8') > 200) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Descrição do valor excede 200 caracteres']);
+            exit;
+        }
+
+        if ((float)$valor > 99999999.99) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Valor excede o máximo permitido']);
             exit;
         }
 

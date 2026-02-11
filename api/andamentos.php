@@ -49,6 +49,12 @@ try {
             exit;
         }
 
+        if (mb_strlen($descricao, 'UTF-8') > 2000) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Descrição excede o limite de 2000 caracteres']);
+            exit;
+        }
+
         $stmt = $pdo->prepare("
             INSERT INTO protocolos_andamentos (protocolo_id, descricao)
             VALUES (?, ?)
@@ -77,6 +83,12 @@ try {
         if ($descricao === '') {
             http_response_code(400);
             echo json_encode(['error' => 'Descrição obrigatória']);
+            exit;
+        }
+
+        if (mb_strlen($descricao, 'UTF-8') > 2000) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Descrição excede o limite de 2000 caracteres']);
             exit;
         }
 

@@ -1,3 +1,6 @@
+import { apiUrl } from './base.js';
+import { getIsDragging, getSuppressSyncUntil } from './state.js';
+
 /* =========================================================
    BUSCA GLOBAL DO BOARD
    ======================================================= */
@@ -97,7 +100,7 @@ function hasActiveFilters() {
 }
 
 function buildParams(status, offset) {
-    if (window.suppressSyncUntil && Date.now() < window.suppressSyncUntil) {
+    if (getSuppressSyncUntil() && Date.now() < getSuppressSyncUntil()) {
         return;
     }
     const params = new URLSearchParams();
@@ -334,84 +337,83 @@ function buscarProtocolos(query) {
 }
 
 /* =========================================================
-   CRIAR CARD VIA JS (ESPELHO DO card.php)
+   CRIAR CARD VIA JS (USA <template id="card-template">)
    ======================================================= */
 
-function criarCard(p) {
+const cardTemplate = document.getElementById('card-template');
 
-    const card = document.createElement('div');
-    card.className = 'card card-appear';
-    card.draggable = true;
+function criarCard(p) {
+    const clone = cardTemplate.content.firstElementChild.cloneNode(true);
+    const card = clone;
+
     card.dataset.id = p.id;
     card.dataset.status = p.status;
     card.dataset.urgente = p.urgente == 1 ? '1' : '0';
-
-    // Clique no card abre modal
     card.addEventListener('click', () => abrirModal(p.id));
 
-    // Urgente
-    if (p.urgente == 1) {
-        card.classList.add('card-urgente');
-    }
+    if (p.urgente == 1) card.classList.add('card-urgente');
 
+    // Tag do ato (cor)
     const corTag = corAtoFixa(p.ato || '') || (p.tag_cor && p.tag_cor.trim() ? p.tag_cor : '#64748b');
     const corTexto = corTextoParaFundo(corTag);
+    const tagEl = card.querySelector('.card-tag');
+    tagEl.style.backgroundColor = corTag;
+    tagEl.style.color = corTexto;
+    tagEl.title = p.ato || '';
 
     const query = (currentQuery || '').trim();
-    const queryUpper = query.toUpperCase();
     const atoText = (p.ato || '').toUpperCase();
-    const atoDisplay = highlightText(atoText, queryUpper);
+    tagEl.innerHTML = highlightText(atoText, query.toUpperCase());
 
-    card.innerHTML = `
-        <div class="card-tag" style="background-color: ${corTag}; color: ${corTexto}">
-            ${atoDisplay}
-        </div>
+    // Ficha / Urgente / Tag custom
+    const fichaEl = card.querySelector('.card-ficha');
+    const fichaHtml = [];
+    if (p.ficha) fichaHtml.push(`<span>Ficha ${p.ficha}</span>`);
+    if (p.urgente == 1) fichaHtml.push('<span class="tag-urgente">Urgente</span>');
+    if (p.tag_custom) fichaHtml.push(`<span class="tag-custom">${escapeHtml(p.tag_custom)}</span>`);
+    if (fichaHtml.length) {
+        fichaEl.innerHTML = fichaHtml.join('');
+    } else {
+        fichaEl.remove();
+    }
 
-        <div class="card-body">
-            ${(p.ficha || p.urgente)
-                ? `<div class="card-ficha">
-                        ${p.ficha ? `<span>Ficha ${p.ficha}</span>` : ''}
-                        ${p.urgente == 1 ? `<span class="tag-urgente">Urgente</span>` : ''}
-                        ${p.tag_custom ? `<span class="tag-custom">${escapeHtml(p.tag_custom)}</span>` : ''}
-                   </div>`
-                : ''
-            }
-            ${(p.tag_custom && !p.ficha && p.urgente != 1)
-                ? `<div class="card-ficha">
-                        <span class="tag-custom">${escapeHtml(p.tag_custom)}</span>
-                   </div>`
-                : ''
-            }
-            ${p.apresentante ? `<div class="card-apresentante"><span class="card-icon">👤</span>${highlightText(p.apresentante, query)}</div>` : ''}
-            ${p.digitador ? `<div class="card-digitador"><span class="card-icon">⌨️</span>Digitador: ${highlightText(p.digitador, query)}</div>` : ''}
-            ${p.outorgantes ? `<div class="card-outorgantes"><span class="card-icon">📝</span>Outorgante: ${highlightText(p.outorgantes, query)}</div>` : ''}
-            ${p.outorgados ? `<div class="card-outorgados"><span class="card-icon">🧾</span>Outorgado: ${highlightText(p.outorgados, query)}</div>` : ''}
-            ${p.data_apresentacao ? `<div class="card-data"><span class="card-icon">📅</span>${formatarData(p.data_apresentacao)}</div>` : ''}
-        </div>
+    // Campos condicionais do body
+    setCardField(card, '.card-apresentante', p.apresentante, query);
+    setCardField(card, '.card-digitador', p.digitador, query, 'Digitador: ');
+    setCardField(card, '.card-outorgantes', p.outorgantes, query, 'Outorgante: ');
+    setCardField(card, '.card-outorgados', p.outorgados, query, 'Outorgado: ');
 
-        <div class="card-footer">
+    const dataEl = card.querySelector('.card-data');
+    if (p.data_apresentacao) {
+        dataEl.querySelector('.card-text').textContent = formatarData(p.data_apresentacao);
+    } else {
+        dataEl.remove();
+    }
 
-            <div class="card-actions">
-                ${p.status !== 'ARQUIVADOS'
-                    ? `<button onclick="arquivarProtocolo(${p.id}); event.stopPropagation()">Arquivar</button>`
-                    : `<button class="btn-restaurar" onclick="restaurarProtocolo(${p.id}); event.stopPropagation()">Restaurar</button>`
-                }
-                <button class="danger" onclick="excluirProtocolo(${p.id}); event.stopPropagation()">Excluir</button>
-            </div>
+    // Footer — ações
+    const actions = card.querySelector('.card-actions');
+    if (p.status !== 'ARQUIVADOS') {
+        actions.innerHTML = `<button onclick="arquivarProtocolo(${p.id}); event.stopPropagation()">Arquivar</button>`;
+    } else {
+        actions.innerHTML = `<button class="btn-restaurar" onclick="restaurarProtocolo(${p.id}); event.stopPropagation()">Restaurar</button>`;
+    }
+    actions.insertAdjacentHTML('beforeend', `<button class="danger" onclick="excluirProtocolo(${p.id}); event.stopPropagation()">Excluir</button>`);
 
-            <div class="card-valores">
-                ${p.total_valores > 0
-                    ? `R$ ${formatarValor(p.total_valores)}`
-                    : '&nbsp;'
-                }
-            </div>
-
-            <div class="card-handle">⋮⋮</div>
-        </div>
-    `;
+    // Valores
+    const valoresEl = card.querySelector('.card-valores');
+    valoresEl.innerHTML = p.total_valores > 0 ? `R$ ${formatarValor(p.total_valores)}` : '&nbsp;';
 
     setTimeout(() => card.classList.remove('card-appear'), 300);
     return card;
+}
+
+function setCardField(card, selector, value, query, prefix) {
+    const el = card.querySelector(selector);
+    if (!value) { el.remove(); return; }
+    const textEl = el.querySelector('.card-text');
+    if (textEl) {
+        textEl.innerHTML = (prefix || '') + highlightText(value, query);
+    }
 }
 
 function insertCardSorted(coluna, card, item) {
@@ -461,6 +463,10 @@ function syncChanges() {
                 const novoCard = criarCard(p);
                 if (existing) {
                     const oldStatus = existing.closest('.cards')?.id;
+
+                    // FLIP animation: captura posição antes
+                    const oldRect = existing.getBoundingClientRect();
+
                     existing.remove();
                     if (oldStatus && oldStatus !== p.status) {
                         adjustColumnCount(oldStatus, -1);
@@ -468,12 +474,32 @@ function syncChanges() {
                     } else if (oldStatus) {
                         updateColumnCount(oldStatus);
                     }
+
+                    insertCardSorted(coluna, novoCard, p);
+
+                    // FLIP: calcula diferença e anima
+                    const newRect = novoCard.getBoundingClientRect();
+                    const dx = oldRect.left - newRect.left;
+                    const dy = oldRect.top - newRect.top;
+
+                    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                        novoCard.style.transform = `translate(${dx}px, ${dy}px)`;
+                        novoCard.style.transition = 'none';
+                        requestAnimationFrame(() => {
+                            novoCard.style.transition = 'transform .35s ease, opacity .35s ease';
+                            novoCard.style.transform = '';
+                            novoCard.addEventListener('transitionend', function handler() {
+                                novoCard.style.transition = '';
+                                novoCard.removeEventListener('transitionend', handler);
+                            });
+                        });
+                    }
                 } else {
                     adjustColumnCount(p.status, 1);
+                    insertCardSorted(coluna, novoCard, p);
+                    novoCard.classList.add('card-sync-move');
+                    setTimeout(() => novoCard.classList.remove('card-sync-move'), 350);
                 }
-                insertCardSorted(coluna, novoCard, p);
-                novoCard.classList.add('card-sync');
-                setTimeout(() => novoCard.classList.remove('card-sync'), 1020);
             });
 
             if (payload?.server_now) lastSyncAt = payload.server_now;
@@ -604,99 +630,20 @@ function renderActiveFilters() {
         .join('');
 }
 
-function corAtoFixa(ato) {
-    const map = {
-        'Abertura de Crédito em conta': '#3b82f6',
-        'Aditivo': '#22c55e',
-        'Alienação Fiduciária': '#f97316',
-        'Ata de adjudicação compulsória': '#6366f1',
-        'Ata Notarial Diligencia Externa': '#14b8a6',
-        'Ata Notarial Externa': '#0ea5e9',
-        'Ata Notarial Interna': '#8b5cf6',
-        'Ata Notarial Internet': '#ef4444',
-        'Ata Notarial para Usucapião': '#06b6d4',
-        'Autocuratela': '#84cc16',
-        'Autorização': '#a855f7',
-        'Caução': '#f59e0b',
-        'Cessão de direitos de aquisição': '#10b981',
-        'Cessão de Direitos de Meação Onerosa': '#1d4ed8',
-        'Cessão de Direitos de Meação por Doação': '#f43f5e',
-        'Cessão de Direitos de Posse': '#16a34a',
-        'Cessão de Direitos Hereditários': '#0f766e',
-        'Cessão de Direitos Hereditários e de Meação': '#7c3aed',
-        'Cessão de Direitos Não Onerosa': '#ea580c',
-        'Cessão de Direitos Onerosa': '#2563eb',
-        'Comodato': '#059669',
-        'Compra e venda': '#4f46e5',
-        'Compra e Venda Bem Móvel com Hipoteca e Alienação': '#b45309',
-        'Compra e Venda com Cessão Onerosa de Direito de Us': '#0891b2',
-        'Compromisso de Compra e Venda': '#22c55e',
-        'Concessão de Direito Real de Uso': '#f97316',
-        'Confissão de Dívida': '#64748b',
-        'Constituição e Convenção de Condomínio': '#0ea5e9',
-        'Contrato de Arrendamento Mercantil': '#1f2937',
-        'Contrato de Locação': '#0f766e',
-        'Conversão de separação em divórcio sem partilha': '#7c3aed',
-        'CONVERSÃO Escritura pública': '#e11d48',
-        'Dação em Pagamento': '#16a34a',
-        'Declaração de União Estável': '#9333ea',
-        'Declaratória': '#f59e0b',
-        'Declaratória de Estremação': '#0ea5e9',
-        'Desapropriação': '#ef4444',
-        'Desapropriação Amigável': '#10b981',
-        'Desfazimento': '#f97316',
-        'Desincorporação': '#6366f1',
-        'Diretivas Antecipadas de Vontade': '#14b8a6',
-        'Dissolução de União Estável': '#3b82f6',
-        'Dissolução de União Estável Com Partilha': '#22c55e',
-        'Distrato de Escritura Pública': '#f43f5e',
-        'Divisão Amigável': '#0ea5e9',
-        'Divórcio com Partilha': '#8b5cf6',
-        'Divórcio Sem Partilha': '#ef4444',
-        'Doação': '#f59e0b',
-        'Doação com Reserva de Usufruto': '#10b981',
-        'Emancipação': '#6366f1',
-        'Extinção de Fundação': '#0f766e',
-        'Hipoteca': '#f97316',
-        'Incorporação': '#3b82f6',
-        'Instituição de Bem de Família': '#14b8a6',
-        'Instituição de Condomínio': '#8b5cf6',
-        'Instituição de Servidão': '#ef4444',
-        'Instituição de Usufruto': '#22c55e',
-        'Integralização de Capital': '#0ea5e9',
-        'Inventário': '#f59e0b',
-        'Inventário e Partilha com Menores e Incapazes': '#7c3aed',
-        'Inventário e Partilha de Bens': '#10b981',
-        'Mútuo': '#64748b',
-        'Nomeação de Inventariante': '#3b82f6',
-        'Nomeação de inventariante com menores e incapazes': '#22c55e',
-        'Pacto Antenupcial': '#f97316',
-        'Pacto Pós Nupcial': '#6366f1',
-        'Partilha Amigável': '#14b8a6',
-        'Permuta': '#ef4444',
-        'Pública Forma': '#8b5cf6',
-        'Quitação': '#0ea5e9',
-        'Ratificação': '#10b981',
-        'Re-Ratificação': '#f59e0b',
-        'Reconhecimento com dissolução de união estável e P': '#64748b',
-        'Reconhecimento de Paternidade': '#3b82f6',
-        'Renúncia': '#ef4444',
-        'Renúncia de Direitos Hereditários': '#8b5cf6',
-        'Renúncia de Propriedade': '#0ea5e9',
-        'Renúncia de Usufruto': '#10b981',
-        'Rerratificação': '#f97316',
-        'Rerratificação e Aditamento': '#6366f1',
-        'Restabelecimento de Sociedade Conjugal': '#14b8a6',
-        'Retificação': '#22c55e',
-        'Revogação de Clausula de Incomunicabilidade': '#f59e0b',
-        'Revogação de Cláusula de Reversão': '#0ea5e9',
-        'Revogação Procuração (1)': '#ef4444',
-        'Sobrepartilha': '#8b5cf6',
-        'Subrogação': '#10b981',
-        'Transação - Acordo Extrajudicial': '#3b82f6'
-    };
+/* Mapa de cores carregado do servidor (fonte única: config/ato-cores.php) */
+let atoCoresMap = {};
 
-    return map[ato] || null;
+function carregarAtoCores() {
+    fetch(apiUrl('api/ato-cores.php'))
+        .then(res => res.json())
+        .then(map => { atoCoresMap = map; })
+        .catch(err => console.error(err));
+}
+
+carregarAtoCores();
+
+function corAtoFixa(ato) {
+    return atoCoresMap[ato] || null;
 }
 
 function corTextoParaFundo(bg) {
@@ -714,36 +661,74 @@ function corTextoParaFundo(bg) {
    ARQUIVAR / RESTAURAR (STATUS)
    ======================================================= */
 
+function moveCardToColumn(id, newStatus) {
+    const card = document.querySelector(`.card[data-id="${id}"]`);
+    const coluna = document.getElementById(newStatus);
+    if (!card || !coluna) return;
+
+    const oldStatus = card.closest('.cards')?.id;
+
+    // Captura posição original para FLIP
+    const oldRect = card.getBoundingClientRect();
+
+    // Move imediatamente no DOM
+    card.dataset.status = newStatus;
+    coluna.prepend(card);
+
+    // Atualiza botões do card
+    if (typeof window.atualizarAcoesCard === 'function') {
+        window.atualizarAcoesCard(card, newStatus);
+    }
+
+    // Atualiza contadores
+    if (oldStatus && oldStatus !== newStatus) {
+        adjustColumnCount(oldStatus, -1);
+        adjustColumnCount(newStatus, 1);
+    }
+
+    // FLIP animation
+    const newRect = card.getBoundingClientRect();
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        card.style.transform = `translate(${dx}px, ${dy}px)`;
+        card.style.transition = 'none';
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform .35s ease, opacity .35s ease';
+            card.style.transform = '';
+            card.addEventListener('transitionend', function handler() {
+                card.style.transition = '';
+                card.removeEventListener('transitionend', handler);
+            });
+        });
+    }
+}
+
 function arquivarProtocolo(id) {
+    moveCardToColumn(id, 'ARQUIVADOS');
 
     fetch(apiUrl('api/protocolos.php?action=status'), {
         method: 'POST',
-        body: new URLSearchParams({
-            id,
-            status: 'ARQUIVADOS'
-        })
+        body: new URLSearchParams({ id, status: 'ARQUIVADOS' })
     })
     .then(res => res.json())
-    .then(() => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+    .then(json => {
+        if (!json.success) console.error('Erro ao arquivar', json);
     })
     .catch(err => console.error(err));
 }
 
 function restaurarProtocolo(id) {
+    moveCardToColumn(id, 'PARA_DISTRIBUIR');
 
     fetch(apiUrl('api/protocolos.php?action=status'), {
         method: 'POST',
-        body: new URLSearchParams({
-            id,
-            status: 'PARA_DISTRIBUIR'
-        })
+        body: new URLSearchParams({ id, status: 'PARA_DISTRIBUIR' })
     })
     .then(res => res.json())
-    .then(() => {
-        const termo = searchInput?.value ?? '';
-        buscarProtocolos(termo);
+    .then(json => {
+        if (!json.success) console.error('Erro ao restaurar', json);
     })
     .catch(err => console.error(err));
 }
@@ -760,7 +745,7 @@ function iniciarAutoSync() {
 
     syncInterval = setInterval(() => {
         if (document.hidden) return;
-        if (window.isDraggingCard) return;
+        if (getIsDragging()) return;
         if (hasActiveFilters()) return;
         syncChanges();
     }, SYNC_INTERVAL_MS);
@@ -768,7 +753,7 @@ function iniciarAutoSync() {
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-        if (window.isDraggingCard) return;
+        if (getIsDragging()) return;
         if (hasActiveFilters()) return;
         syncChanges();
     }
@@ -784,3 +769,9 @@ document.querySelectorAll('.cards').forEach(col => {
 
 resetBoardAndLoad();
 iniciarAutoSync();
+
+// Expor no window para uso por outros módulos e onclick handlers inline
+window.atualizarCard = atualizarCard;
+window.buscarProtocolos = buscarProtocolos;
+window.adjustColumnCount = adjustColumnCount;
+window.updateAllColumnCounts = updateAllColumnCounts;

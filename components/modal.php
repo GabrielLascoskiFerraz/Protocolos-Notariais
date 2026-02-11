@@ -130,13 +130,13 @@
                             </select>
                             <div id="ato-outros-wrapper" class="form-group hidden">
                                 <label>Outro ato</label>
-                                <input type="text" id="ato-outros-input" data-field="ato" placeholder="Descreva o ato">
+                                <input type="text" id="ato-outros-input" data-field="ato" placeholder="Descreva o ato" maxlength="100">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>Ficha</label>
-                            <input type="number" data-field="ficha">
+                            <input type="number" data-field="ficha" min="0" max="9999999" maxlength="7">
                         </div>
 
                         <div class="form-group">
@@ -152,13 +152,13 @@
                             </select>
                             <div id="digitador-outros" class="form-group hidden">
                                 <label>Outro digitador</label>
-                                <input type="text" id="digitador-input" data-field="digitador" placeholder="Nome do digitador">
+                                <input type="text" id="digitador-input" data-field="digitador" placeholder="Nome do digitador" maxlength="100">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>Apresentante</label>
-                            <input type="text" data-field="apresentante">
+                            <input type="text" data-field="apresentante" maxlength="200">
                         </div>
 
                         <div class="form-group">
@@ -168,7 +168,7 @@
 
                         <div class="form-group">
                             <label>Contato</label>
-                            <input type="text" data-field="contato">
+                            <input type="text" data-field="contato" maxlength="200">
                         </div>
 
                         <div class="form-group">
@@ -184,7 +184,7 @@
                             </select>
                             <div id="tag-custom-outros" class="form-group hidden">
                                 <label>Outra tag</label>
-                                <input type="text" id="tag-custom-input" data-field="tag_custom" placeholder="Ex.: FAZER ITBI">
+                                <input type="text" id="tag-custom-input" data-field="tag_custom" placeholder="Ex.: FAZER ITBI" maxlength="50">
                             </div>
                         </div>
 
@@ -209,12 +209,12 @@
 
                     <div class="form-group">
                         <label>Outorgantes</label>
-                        <textarea rows="3" data-field="outorgantes"></textarea>
+                        <textarea rows="3" data-field="outorgantes" maxlength="2000"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label>Outorgados</label>
-                        <textarea rows="3" data-field="outorgados"></textarea>
+                        <textarea rows="3" data-field="outorgados" maxlength="2000"></textarea>
                     </div>
                 </section>
 
@@ -294,7 +294,7 @@
                     <h3>Observações</h3>
 
                     <div class="form-group">
-                        <textarea rows="4" data-field="observacoes"></textarea>
+                        <textarea rows="4" data-field="observacoes" maxlength="5000"></textarea>
                     </div>
                 </section>
             </div>

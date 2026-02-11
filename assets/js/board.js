@@ -1,9 +1,12 @@
+import { apiUrl } from './base.js';
+import { showToast } from './toast.js';
+import { setIsDragging, setSuppressSyncUntil } from './state.js';
+
 /* =========================================================
    DRAG & DROP DO KANBAN
    ======================================================= */
 
 let draggedCard = null;
-window.isDraggingCard = false;
 let dragImageEl = null;
 
 /* =========================
@@ -14,7 +17,7 @@ document.addEventListener('dragstart', function (e) {
     if (!card) return;
 
     draggedCard = card;
-    window.isDraggingCard = true;
+    setIsDragging(true);
 
     if (dragImageEl) {
         dragImageEl.remove();
@@ -49,7 +52,7 @@ document.addEventListener('dragend', function () {
         draggedCard.classList.remove('dragging');
     }
     draggedCard = null;
-    window.isDraggingCard = false;
+    setIsDragging(false);
     if (dragImageEl) {
         dragImageEl.remove();
         dragImageEl = null;
@@ -82,7 +85,6 @@ document.querySelectorAll('.cards').forEach(column => {
         const oldStatus = cardEl.dataset.status;
         const novoStatus = column.id;
 
-        // Move visualmente (no topo para feedback imediato)
         column.prepend(cardEl);
         cardEl.dataset.status = novoStatus;
         atualizarAcoesCard(cardEl, novoStatus);
@@ -90,15 +92,14 @@ document.querySelectorAll('.cards').forEach(column => {
         void cardEl.offsetWidth;
         cardEl.classList.add('move-animate');
         setTimeout(() => cardEl.classList.remove('move-animate'), 280);
-        window.suppressSyncUntil = Date.now() + 1500;
+        setSuppressSyncUntil(Date.now() + 1500);
 
-        // Atualiza backend
         atualizarStatus(id, novoStatus);
-        if (typeof adjustColumnCount === 'function' && oldStatus && oldStatus !== novoStatus) {
-            adjustColumnCount(oldStatus, -1);
-            adjustColumnCount(novoStatus, 1);
-        } else if (typeof updateAllColumnCounts === 'function') {
-            updateAllColumnCounts();
+        if (typeof window.adjustColumnCount === 'function' && oldStatus && oldStatus !== novoStatus) {
+            window.adjustColumnCount(oldStatus, -1);
+            window.adjustColumnCount(novoStatus, 1);
+        } else if (typeof window.updateAllColumnCounts === 'function') {
+            window.updateAllColumnCounts();
         }
     });
 });
@@ -118,20 +119,18 @@ function atualizarStatus(id, status) {
             console.error('Erro ao atualizar status', json);
             return;
         }
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(id);
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(id);
         }
-        if (typeof showToast === 'function') {
-            const map = {
-                'PARA_DISTRIBUIR': 'Para distribuir',
-                'EM_ANDAMENTO': 'Em andamento',
-                'PARA_CORRECAO': 'Para correção',
-                'LAVRADOS': 'Lavrados',
-                'ARQUIVADOS': 'Arquivados'
-            };
-            const label = map[status] || status.replace(/_/g, ' ').toLowerCase();
-            showToast(`Movido para ${label}`, 'success');
-        }
+        const map = {
+            'PARA_DISTRIBUIR': 'Para distribuir',
+            'EM_ANDAMENTO': 'Em andamento',
+            'PARA_CORRECAO': 'Para correção',
+            'LAVRADOS': 'Lavrados',
+            'ARQUIVADOS': 'Arquivados'
+        };
+        const label = map[status] || status.replace(/_/g, ' ').toLowerCase();
+        showToast(`Movido para ${label}`, 'success');
     })
     .catch(err => console.error(err));
 }
@@ -140,7 +139,7 @@ function atualizarStatus(id, status) {
    ATUALIZAR BOTÕES DO CARD (ARQUIVAR/RESTAURAR)
    ======================================================= */
 
-function atualizarAcoesCard(card, status) {
+export function atualizarAcoesCard(card, status) {
     const actions = card.querySelector('.card-actions');
     if (!actions) return;
 
@@ -185,16 +184,56 @@ if (toggleArchivedBtn && colunaArquivados) {
    AÇÕES DO CARD (BOTÕES)
    ======================================================= */
 
-function arquivarProtocolo(id) {
+function moveCardImediato(id, novoStatus) {
+    const card = document.querySelector(`.card[data-id="${id}"]`);
+    const coluna = document.getElementById(novoStatus);
+    if (!card || !coluna) return;
+
+    const oldStatus = card.closest('.cards')?.id;
+    const oldRect = card.getBoundingClientRect();
+
+    card.dataset.status = novoStatus;
+    atualizarAcoesCard(card, novoStatus);
+    coluna.prepend(card);
+
+    if (oldStatus && oldStatus !== novoStatus) {
+        if (typeof window.adjustColumnCount === 'function') {
+            window.adjustColumnCount(oldStatus, -1);
+            window.adjustColumnCount(novoStatus, 1);
+        }
+    }
+
+    // FLIP animation
+    const newRect = card.getBoundingClientRect();
+    const dx = oldRect.left - newRect.left;
+    const dy = oldRect.top - newRect.top;
+
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        card.style.transform = `translate(${dx}px, ${dy}px)`;
+        card.style.transition = 'none';
+        requestAnimationFrame(() => {
+            card.style.transition = 'transform .35s ease, opacity .35s ease';
+            card.style.transform = '';
+            card.addEventListener('transitionend', function handler() {
+                card.style.transition = '';
+                card.removeEventListener('transitionend', handler);
+            });
+        });
+    }
+}
+
+export function arquivarProtocolo(id) {
     if (!confirm('Arquivar este protocolo?')) return;
+    moveCardImediato(id, 'ARQUIVADOS');
     atualizarStatus(id, 'ARQUIVADOS');
 }
 
-function restaurarProtocolo(id) {
+export function restaurarProtocolo(id) {
+    moveCardImediato(id, 'PARA_DISTRIBUIR');
     atualizarStatus(id, 'PARA_DISTRIBUIR');
 }
 
-function excluirProtocolo(id) {
+export function excluirProtocolo(id) {
     if (!confirm('Excluir definitivamente este protocolo?')) return;
 
     fetch(apiUrl('api/protocolos.php?action=delete'), {
@@ -205,8 +244,8 @@ function excluirProtocolo(id) {
         const card = document.querySelector(`.card[data-id="${id}"]`);
         const status = card?.dataset?.status;
         card?.remove();
-        if (typeof adjustColumnCount === 'function') {
-            adjustColumnCount(status, -1);
+        if (typeof window.adjustColumnCount === 'function') {
+            window.adjustColumnCount(status, -1);
         }
     })
     .catch(err => console.error(err));
@@ -216,22 +255,27 @@ function excluirProtocolo(id) {
    CRIAR NOVO PROTOCOLO
    ======================================================= */
 
-function criarProtocolo() {
+export function criarProtocolo() {
     fetch(apiUrl('api/protocolos.php?action=create'), { method: 'POST' })
         .then(r => r.json())
         .then(json => {
             if (!json.success || !json.id) return;
 
-            // Recarrega o board respeitando busca atual
-            if (typeof buscarProtocolos === 'function') {
+            if (typeof window.buscarProtocolos === 'function') {
                 const termo = document.getElementById('search')?.value ?? '';
-                buscarProtocolos(termo);
+                window.buscarProtocolos(termo);
             }
 
-            // Abre modal do novo protocolo
-            if (typeof abrirModal === 'function') {
-                abrirModal(json.id);
+            if (typeof window.abrirModal === 'function') {
+                window.abrirModal(json.id);
             }
         })
         .catch(err => console.error(err));
 }
+
+// Expor no window para onclick handlers inline no PHP
+window.arquivarProtocolo = arquivarProtocolo;
+window.restaurarProtocolo = restaurarProtocolo;
+window.excluirProtocolo = excluirProtocolo;
+window.criarProtocolo = criarProtocolo;
+window.atualizarAcoesCard = atualizarAcoesCard;

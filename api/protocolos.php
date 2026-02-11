@@ -294,12 +294,60 @@ try {
             exit;
         }
 
+        // Validação de tamanho e formato por campo
+        $maxLengths = [
+            'ato'              => 100,
+            'digitador'        => 100,
+            'apresentante'     => 200,
+            'contato'          => 200,
+            'outorgantes'      => 2000,
+            'outorgados'       => 2000,
+            'matricula'        => 200,
+            'area'             => 200,
+            'observacoes'      => 5000,
+            'tag_custom'       => 50,
+            'valor_ato'        => 20,
+        ];
+
+        if (isset($maxLengths[$field]) && mb_strlen((string)$value, 'UTF-8') > $maxLengths[$field]) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => "Campo '{$field}' excede o limite de {$maxLengths[$field]} caracteres"
+            ]);
+            exit;
+        }
+
+        // Ficha: apenas números inteiros positivos
+        if ($field === 'ficha') {
+            $value = preg_replace('/\D/', '', (string)$value);
+            if ($value !== '' && (int)$value > 9999999) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Ficha deve ter no máximo 7 dígitos']);
+                exit;
+            }
+        }
+
         if ($field === 'urgente') {
             $value = (int)$value;
         }
 
         if ($field === 'valor_ato') {
             $value = normalizarDinheiro($value);
+            if ($value !== '' && !is_numeric($value)) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Valor do ato inválido']);
+                exit;
+            }
+        }
+
+        // Data: validar formato
+        if ($field === 'data_apresentacao' && $value !== '') {
+            $date = \DateTime::createFromFormat('Y-m-d', $value);
+            if (!$date || $date->format('Y-m-d') !== $value) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Data de apresentação inválida']);
+                exit;
+            }
         }
 
         $stmt = $pdo->prepare("

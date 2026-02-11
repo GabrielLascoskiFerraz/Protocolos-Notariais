@@ -1,8 +1,10 @@
+import { apiUrl } from './base.js';
+import { getProtocoloAtual, setProtocoloAtual } from './state.js';
+import { salvarCampo } from './autosave.js';
+
 /* =========================================================
    MODAL / PAINEL DO PROTOCOLO
    ======================================================= */
-
-window.protocoloAtual = null;
 
 const modal = document.getElementById('protocolo-modal');
 const modalAto = document.getElementById('modal-ato');
@@ -32,7 +34,7 @@ if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
         atoOutrosWrapper.classList.add('hidden');
         atoOutrosInput.value = value;
 
-        if (typeof salvarCampo === 'function' && window.protocoloAtual) {
+        if (getProtocoloAtual()) {
             salvarCampo('ato', value);
         }
     });
@@ -52,7 +54,7 @@ if (tagSelect && tagOutrosWrapper && tagOutrosInput) {
         tagOutrosWrapper.classList.add('hidden');
         tagOutrosInput.value = value;
 
-        if (typeof salvarCampo === 'function' && window.protocoloAtual) {
+        if (getProtocoloAtual()) {
             salvarCampo('tag_custom', value);
         }
     });
@@ -72,7 +74,7 @@ if (digitadorSelect && digitadorOutrosWrapper && digitadorInput) {
         digitadorOutrosWrapper.classList.add('hidden');
         digitadorInput.value = value;
 
-        if (typeof salvarCampo === 'function' && window.protocoloAtual) {
+        if (getProtocoloAtual()) {
             salvarCampo('digitador', value);
         }
     });
@@ -92,8 +94,8 @@ document.addEventListener('keydown', (e) => {
    ABRIR MODAL
    ======================================================= */
 
-function abrirModal(id) {
-    window.protocoloAtual = id;
+export function abrirModal(id) {
+    setProtocoloAtual(id);
 
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -113,13 +115,13 @@ function abrirModal(id) {
    FECHAR MODAL
    ======================================================= */
 
-function fecharModal() {
+export function fecharModal() {
     modal.classList.add('closing');
     setTimeout(() => {
         modal.classList.add('hidden');
         modal.classList.remove('closing');
         document.body.style.overflow = '';
-        window.protocoloAtual = null;
+        setProtocoloAtual(null);
     }, 200);
 }
 
@@ -260,9 +262,8 @@ function carregarValores(id) {
             atualizarTotalValores(total);
         })
         .catch(err => console.error(err));
-    // Atualiza o card no board
-    if (typeof atualizarCard === 'function') {
-        atualizarCard(window.protocoloAtual);
+    if (typeof window.atualizarCard === 'function') {
+        window.atualizarCard(getProtocoloAtual());
     }
 }
 
@@ -317,13 +318,13 @@ function carregarImoveis(id) {
         .catch(err => console.error(err));
 }
 
-function adicionarImovel() {
-    if (!window.protocoloAtual) return;
+export function adicionarImovel() {
+    if (!getProtocoloAtual()) return;
 
     fetch(apiUrl('api/imoveis.php?action=create'), {
         method: 'POST',
         body: new URLSearchParams({
-            protocolo_id: window.protocoloAtual,
+            protocolo_id: getProtocoloAtual(),
             matricula: '',
             area: ''
         })
@@ -334,15 +335,15 @@ function adicionarImovel() {
             console.error('Erro ao adicionar imóvel', json);
             return;
         }
-        carregarImoveis(window.protocoloAtual);
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(window.protocoloAtual);
+        carregarImoveis(getProtocoloAtual());
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(getProtocoloAtual());
         }
     })
     .catch(err => console.error(err));
 }
 
-function atualizarImovel(id) {
+export function atualizarImovel(id) {
     const item = document.querySelector(`.valor-item[data-id="${id}"]`);
     if (!item) return;
 
@@ -359,14 +360,14 @@ function atualizarImovel(id) {
             console.error('Erro ao atualizar imóvel', json);
             return;
         }
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(window.protocoloAtual);
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(getProtocoloAtual());
         }
     })
     .catch(err => console.error(err));
 }
 
-function removerImovel(id) {
+export function removerImovel(id) {
     if (!confirm('Remover este imóvel?')) return;
 
     fetch(apiUrl('api/imoveis.php?action=delete'), {
@@ -379,9 +380,9 @@ function removerImovel(id) {
             console.error('Erro ao remover imóvel', json);
             return;
         }
-        carregarImoveis(window.protocoloAtual);
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(window.protocoloAtual);
+        carregarImoveis(getProtocoloAtual());
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(getProtocoloAtual());
         }
     })
     .catch(err => console.error(err));
@@ -391,8 +392,8 @@ function removerImovel(id) {
    ANDAMENTOS
    ======================================================= */
 
-function adicionarAndamento() {
-    if (!window.protocoloAtual) return;
+export function adicionarAndamento() {
+    if (!getProtocoloAtual()) return;
 
     const textarea = document.getElementById('novo-andamento-texto');
     if (!textarea) return;
@@ -403,7 +404,7 @@ function adicionarAndamento() {
     fetch(apiUrl('api/andamentos.php?action=create'), {
         method: 'POST',
         body: new URLSearchParams({
-            protocolo_id: window.protocoloAtual,
+            protocolo_id: getProtocoloAtual(),
             descricao: texto
         })
     })
@@ -415,7 +416,7 @@ function adicionarAndamento() {
         }
 
         textarea.value = '';
-        carregarAndamentos(window.protocoloAtual);
+        carregarAndamentos(getProtocoloAtual());
     })
     .catch(err => console.error(err));
 }
@@ -474,8 +475,8 @@ function carregarAndamentos(id) {
    EDITAR / REMOVER ANDAMENTO
    ======================================================= */
 
-function editarAndamento(id) {
-    if (!window.protocoloAtual) return;
+export function editarAndamento(id) {
+    if (!getProtocoloAtual()) return;
     const textoEl = document.querySelector(`.timeline-text[data-id="${id}"]`);
     if (!textoEl) return;
 
@@ -496,13 +497,13 @@ function editarAndamento(id) {
             console.error('Erro ao atualizar andamento', json);
             return;
         }
-        carregarAndamentos(window.protocoloAtual);
+        carregarAndamentos(getProtocoloAtual());
     })
     .catch(err => console.error(err));
 }
 
-function removerAndamento(id) {
-    if (!window.protocoloAtual) return;
+export function removerAndamento(id) {
+    if (!getProtocoloAtual()) return;
     if (!confirm('Remover este andamento?')) return;
 
     fetch(apiUrl('api/andamentos.php?action=delete'), {
@@ -515,7 +516,7 @@ function removerAndamento(id) {
             console.error('Erro ao remover andamento', json);
             return;
         }
-        carregarAndamentos(window.protocoloAtual);
+        carregarAndamentos(getProtocoloAtual());
     })
     .catch(err => console.error(err));
 }
@@ -529,14 +530,14 @@ function atualizarTotalValores(total) {
         formatarValor(total);
 }
 
-function formatarValor(valor) {
+export function formatarValor(valor) {
     return Number(valor).toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     });
 }
 
-function formatarDataHora(data) {
+export function formatarDataHora(data) {
     if (!data) return '';
     const d = new Date(data.replace(' ', 'T'));
     return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {
@@ -549,10 +550,10 @@ function formatarDataHora(data) {
    GERAR PDF (FICHA)
    ======================================================= */
 
-function gerarPdfFicha() {
-    if (!window.protocoloAtual) return;
+export function gerarPdfFicha() {
+    if (!getProtocoloAtual()) return;
 
-    const id = window.protocoloAtual;
+    const id = getProtocoloAtual();
 
     Promise.all([
         fetch(apiUrl(`api/protocolos.php?action=get&id=${id}`)).then(r => r.json()),
@@ -690,7 +691,7 @@ function gerarPdfFicha() {
       }, 100);
     });
   })();
-</script>
+</` + `script>
 </html>`;
 
         const w = window.open('', '_blank');
@@ -707,13 +708,13 @@ function gerarPdfFicha() {
    VALORES ADICIONAIS
    ======================================================= */
 
-function adicionarValor() {
-    if (!window.protocoloAtual) return;
+export function adicionarValor() {
+    if (!getProtocoloAtual()) return;
 
     fetch(apiUrl('api/valores.php?action=create'), {
         method: 'POST',
         body: new URLSearchParams({
-            protocolo_id: window.protocoloAtual,
+            protocolo_id: getProtocoloAtual(),
             descricao: '',
             valor: '0'
         })
@@ -725,12 +726,12 @@ function adicionarValor() {
             return;
         }
 
-        carregarValores(window.protocoloAtual);
+        carregarValores(getProtocoloAtual());
     })
     .catch(err => console.error(err));
 }
 
-function atualizarValor(id) {
+export function atualizarValor(id) {
     const item = document.querySelector(`.valor-item[data-id="${id}"]`);
     if (!item) return;
 
@@ -756,15 +757,14 @@ function atualizarValor(id) {
 
         atualizarTotalValores(json.total);
 
-        // Atualiza card no board
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(window.protocoloAtual);
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(getProtocoloAtual());
         }
     })
     .catch(err => console.error(err));
 }
 
-function removerValor(id) {
+export function removerValor(id) {
     if (!confirm('Remover este valor?')) return;
 
     fetch(apiUrl('api/valores.php?action=delete'), {
@@ -778,12 +778,25 @@ function removerValor(id) {
             return;
         }
 
-        carregarValores(window.protocoloAtual);
+        carregarValores(getProtocoloAtual());
 
-        // Atualiza card no board
-        if (typeof atualizarCard === 'function') {
-            atualizarCard(window.protocoloAtual);
+        if (typeof window.atualizarCard === 'function') {
+            window.atualizarCard(getProtocoloAtual());
         }
     })
     .catch(err => console.error(err));
 }
+
+// Expor no window para onclick handlers inline do PHP
+window.abrirModal = abrirModal;
+window.fecharModal = fecharModal;
+window.gerarPdfFicha = gerarPdfFicha;
+window.adicionarAndamento = adicionarAndamento;
+window.editarAndamento = editarAndamento;
+window.removerAndamento = removerAndamento;
+window.adicionarImovel = adicionarImovel;
+window.atualizarImovel = atualizarImovel;
+window.removerImovel = removerImovel;
+window.adicionarValor = adicionarValor;
+window.atualizarValor = atualizarValor;
+window.removerValor = removerValor;
