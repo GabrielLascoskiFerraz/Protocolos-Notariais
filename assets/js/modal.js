@@ -569,130 +569,273 @@ export function gerarPdfFicha() {
         const hasImoveis = Array.isArray(imoveis) && imoveis.length > 0;
 
         const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <title>Ficha ${p.ficha || p.id}</title>
-  <style>
-    @page { size: A4; margin: 18mm; }
-    body { font-family: Arial, sans-serif; color: #0f172a; }
-    .header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; }
-    .title { font-size: 18px; font-weight: 700; }
-    .meta { font-size: 12px; color: #64748b; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; background: #0ea5e9; color: #fff; margin-left: 6px; }
-    .badge-urgent { background: #dc2626; }
-    .section { margin-bottom: 14px; }
-    .section + .section { margin-top: 6px; }
-    .section h3 { font-size: 12px; letter-spacing: .3px; color: #64748b; text-transform: uppercase; margin: 0 0 8px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 12px; }
-    .row { display: flex; gap: 6px; }
-    .label { color: #64748b; min-width: 110px; }
-    .box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; font-size: 12px; }
-    .box + .box { margin-top: 8px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border-bottom: 1px solid #e2e8f0; padding: 6px 4px; text-align: left; }
-    th { color: #64748b; font-weight: 600; }
-    .right { text-align: right; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <img src="${apiUrl('assets/img/logo.png')}" alt="Logo" style="width:36px; height:auto;">
-    <div class="title">Ficha ${(!p.ficha || p.ficha == 0) ? '__________' : p.ficha} — ${p.ato || ''}</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      ${p.urgente == 1 ? '<span class="badge badge-urgent">URGENTE</span>' : ''}
-      <div class="meta">${new Date().toLocaleDateString('pt-BR')}</div>
-    </div>
-  </div>
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+            <meta charset="UTF-8">
+            <title>Ficha ${p.ficha || p.id}</title>
 
-  <div class="section">
-    <h3>Identificação</h3>
-    <div class="grid">
-      <div class="row"><div class="label">Digitador:</div><div>${p.digitador || ''}</div></div>
-      <div class="row"><div class="label">Apresentante:</div><div>${p.apresentante || ''}</div></div>
-      <div class="row"><div class="label">Data:</div><div>${p.data_apresentacao ? new Date(p.data_apresentacao).toLocaleDateString('pt-BR') : ''}</div></div>
-      <div class="row"><div class="label">Contato:</div><div>${p.contato || ''}</div></div>
-      <div class="row"><div class="label">Urgente:</div><div>${p.urgente == 1 ? 'Sim' : 'Não'}</div></div>
-      <div class="row"><div class="label">Tag:</div><div>${p.tag_custom || ''}</div></div>
-    </div>
-  </div>
+            <style>
+            @page { 
+            size: A4; 
+            margin: 18mm; 
+            }
 
-  <div class="section">
-    <h3>Partes</h3>
-    <div class="box"><strong>Outorgantes:</strong> ${p.outorgantes || ''}</div>
-    <div style="height:6px"></div>
-    <div class="box"><strong>Outorgados:</strong> ${p.outorgados || ''}</div>
-  </div>
+            body {
+            font-family: "Times New Roman", serif;
+            font-size: 12.5px;
+            color: #000;
+            }
 
-  <div class="section">
-    <h3>Imóvel</h3>
-    ${hasImoveis ? `
-    <table>
-      <thead>
-        <tr><th>Matrícula</th><th>Área</th></tr>
-      </thead>
-      <tbody>
-        ${(imoveis || []).map(i => `<tr><td>${i.matricula || ''}</td><td>${i.area || ''}</td></tr>`).join('')}
-      </tbody>
-    </table>
-    ` : '<div class="meta">Sem imóveis registrados.</div>'}
-  </div>
+            /* evita quebra feia */
+            * {
+            page-break-inside: avoid;
+            }
 
-  <div class="section">
-    <h3>Valores</h3>
-    <div class="row">
-      <div class="label">Valor do ato:</div>
-      <div>${(p.valor_ato && Number(p.valor_ato) > 0) ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}` : 'R$'}</div>
-    </div>
-    ${hasValoresAdicionais ? `
-    <table>
-      <thead>
-        <tr><th>Descrição</th><th class="right">Valor</th></tr>
-      </thead>
-      <tbody>
-        ${(valores || []).map(v => `<tr><td>${v.descricao || ''}</td><td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</td></tr>`).join('')}
-        <tr><td><strong>Total adicional</strong></td><td class="right"><strong>R$ ${Number(totalAdicional).toLocaleString('pt-BR',{minimumFractionDigits:2, maximumFractionDigits:2})}</strong></td></tr>
-      </tbody>
-    </table>
-    ` : ''}
-  </div>
+            .header {
+            display: grid;
+            grid-template-columns: 78px 1fr;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 12px;
+            }
 
-  <div class="section">
-    <h3>Andamentos</h3>
-    <table>
-      <thead>
-        <tr><th>Data</th><th>Descrição</th></tr>
-      </thead>
-      <tbody>
-        ${(andamentos || []).map(a => `<tr><td>${formatarDataHora(a.created_at)}</td><td>${(a.descricao || '').replace(/\\n/g, '<br>')}</td></tr>`).join('') || '<tr><td colspan="2">Sem andamentos</td></tr>'}
-      </tbody>
-    </table>
-  </div>
+            .logo {
+            width: 72px;
+            border-radius: 10px;
+            }
 
-  <div class="section">
-    <h3>Observações</h3>
-    <div class="box">${p.observacoes || ''}</div>
-  </div>
-</body>
-<script>
-  (function() {
-    const imgs = Array.from(document.images || []);
-    const wait = imgs.map(img => new Promise(resolve => {
-      if (img.complete) return resolve();
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-    }));
-    Promise.all(wait).then(() => {
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    });
-  })();
-</` + `script>
-</html>`;
+            .inst {
+            text-align: center;
+            line-height: 1.15;
+            }
+
+            .inst .top { font-weight: 700; font-size: 13px; }
+            .inst .mid { font-size: 12.5px; }
+            .inst .tit { font-weight: 700; font-size: 14px; margin-top: 2px; }
+            .inst .nome { font-weight: 700; font-size: 13px; margin-top: 2px; }
+            .inst .sub { font-size: 12.5px; }
+
+            .grid-campos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 16px;
+            margin-bottom: 10px;
+            }
+
+            .campo {
+            display: grid;
+            grid-template-columns: 115px 1fr;
+            gap: 8px;
+            align-items: end;
+            }
+
+            .label {
+            font-weight: 700;
+            white-space: nowrap;
+            }
+
+            .linha {
+            border-bottom: 1px solid #000;
+            min-height: 18px;
+            padding: 1px 3px 2px;
+            }
+
+            .span-2 { grid-column: 1 / -1; }
+
+            .section { margin-top: 10px; }
+
+            .section .title {
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: .2px;
+            }
+
+            .checkbox-ato {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: #e0f2fe;
+            border: 1px solid #0284c7;
+            border-radius: 5px;
+            font-weight: 700;
+            font-size: 13.5px;
+            }
+
+            .checkbox-box {
+            width: 14px;
+            height: 14px;
+            background: #0284c7;
+            border: 1px solid #0284c7;
+            }
+
+            .big-box {
+            border: 1px solid #000;
+            padding: 6px;
+            min-height: 42px;
+            }
+
+            .tabela {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            }
+
+            .tabela th, .tabela td {
+            border-bottom: 1px solid #000;
+            padding: 4px 3px;
+            }
+
+            .tabela th {
+            font-weight: 700;
+            text-align: left;
+            }
+
+            .right { text-align: right; }
+
+            .valor-ato {
+            font-size: 14px;
+            font-weight: 700;
+            }
+
+            .total {
+            font-weight: 700;
+            }
+            </style>
+            </head>
+
+            <body>
+
+            <div class="header">
+            <img class="logo" src="${apiUrl('assets/img/logo.png')}" alt="Logo">
+            <div class="inst">
+                <div class="top">REPÚBLICA FEDERATIVA DO BRASIL</div>
+                <div class="mid">Estado do Paraná - Comarca de Irati</div>
+                <div class="tit">2º Tabelionato de Notas de Irati</div>
+                <div class="nome">CRISTINA TONET COLODEL</div>
+                <div class="sub">Tabeliã de Notas</div>
+            </div>
+            </div>
+
+            <div class="grid-campos">
+            <div class="campo">
+                <div class="label">Capa/Ficha:</div>
+                <div class="linha">${p.ficha || ''}</div>
+            </div>
+
+            <div class="campo">
+                <div class="label">Data:</div>
+                <div class="linha">${
+                p.data_apresentacao
+                    ? new Date(String(p.data_apresentacao) + 'T00:00:00').toLocaleDateString('pt-BR')
+                    : ''
+                }</div>
+            </div>
+
+            <div class="campo span-2">
+                <div class="label">Apresentante:</div>
+                <div class="linha">${p.apresentante || ''}</div>
+            </div>
+
+            <div class="campo">
+                <div class="label">Contato:</div>
+                <div class="linha">${p.contato || ''}</div>
+            </div>
+
+            <div class="campo">
+                <div class="label">Digitador:</div>
+                <div class="linha">${p.digitador || ''}</div>
+            </div>
+            </div>
+
+            <div class="section">
+            <div class="title">ATO</div>
+            <div class="checkbox-ato">
+                <div class="checkbox-box"></div>
+                ${p.ato || ''}
+            </div>
+            </div>
+
+            <div class="section">
+            <div class="title">OUTORGANTE(S)</div>
+            <div class="big-box">${p.outorgantes || ''}</div>
+            </div>
+
+            <div class="section">
+            <div class="title">OUTORGADO(S)</div>
+            <div class="big-box">${p.outorgados || ''}</div>
+            </div>
+
+            <div class="section">
+            <div class="title">ÁREA / MATRÍCULA</div>
+            <div class="big-box">
+                ${
+                (Array.isArray(imoveis) && imoveis.length)
+                    ? imoveis.map(i => `
+                        <div>${(i.matricula || '')}${(i.area ? ' — ' + i.area : '')}</div>
+                    `).join('')
+                    : ''
+                }
+            </div>
+            </div>
+
+            <div class="section">
+            <div class="title">VALORES</div>
+
+            <div class="campo" style="margin-bottom:8px;">
+                <div class="label">Valor do ato:</div>
+                <div class="linha valor-ato">
+                ${
+                    (p.valor_ato && Number(p.valor_ato) > 0)
+                    ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : ''
+                }
+                </div>
+            </div>
+
+            ${
+                (Array.isArray(valores) && valores.length)
+                ? `
+                    <table class="tabela">
+                    <thead>
+                        <tr>
+                        <th>Valores adicionais</th>
+                        <th class="right" style="width:120px;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${valores.map(v => `
+                        <tr>
+                            <td>${v.descricao || ''}</td>
+                            <td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        `).join('')}
+                        <tr>
+                        <td class="total">Total adicional</td>
+                        <td class="right total">R$ ${Number(totalAdicional || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                    </tbody>
+                    </table>
+                `
+                : ''
+            }
+            </div>
+
+            <div class="section">
+            <div class="title">OBSERVAÇÕES</div>
+            <div class="big-box">${p.observacoes || ''}</div>
+            </div>
+
+            <script>
+            window.onload = function() {
+            setTimeout(() => window.print(), 250);
+            };
+            </script>
+
+            </body>
+            </html>
+`;
 
         const w = window.open('', '_blank');
         if (!w) return;
