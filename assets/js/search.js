@@ -587,7 +587,11 @@ function formatarValor(valor) {
 }
 
 function formatarData(data) {
-    return new Date(data).toLocaleDateString('pt-BR');
+    if (!data) return '';
+    const s = String(data).slice(0, 10); // "YYYY-MM-DD"
+    const [y, m, d] = s.split('-').map(n => parseInt(n, 10));
+    if (!y || !m || !d) return '';
+    return new Date(y, m - 1, d).toLocaleDateString('pt-BR');
 }
 
 function escapeHtml(text) {

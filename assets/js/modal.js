@@ -568,273 +568,412 @@ export function gerarPdfFicha() {
         const hasValoresAdicionais = Array.isArray(valores) && valores.length > 0;
         const hasImoveis = Array.isArray(imoveis) && imoveis.length > 0;
 
-        const html = `
-            <!DOCTYPE html>
-            <html lang="pt-BR">
-            <head>
-            <meta charset="UTF-8">
-            <title>Ficha ${p.ficha || p.id}</title>
+                        const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Ficha ${p.ficha || p.id}</title>
 
-            <style>
-            @page { 
-            size: A4; 
-            margin: 18mm; 
-            }
+<style>
+@page { size: A4; margin: 14mm; }
 
-            body {
-            font-family: "Times New Roman", serif;
-            font-size: 12.5px;
-            color: #000;
-            }
+html, body { margin: 0; padding: 0; }
 
-            /* evita quebra feia */
-            * {
-            page-break-inside: avoid;
-            }
+:root{
+  --ink: #0f172a;
+  --muted: #475569;
+  --line: rgba(15,23,42,.25);
+  --soft: rgba(15,23,42,.08);
+  --brand: #0f172a;
+  --accent: #0284c7;
+}
 
-            .header {
-            display: grid;
-            grid-template-columns: 78px 1fr;
-            gap: 12px;
-            align-items: start;
-            margin-bottom: 12px;
-            }
+body{
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+  font-size: 11.6px;
+  line-height: 1.25;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 
-            .logo {
-            width: 72px;
-            border-radius: 10px;
-            }
+.sheet{
+  width: 100%;
+}
 
-            .inst {
-            text-align: center;
-            line-height: 1.15;
-            }
+/* =========================
+   HEADER INSTITUCIONAL
+========================= */
 
-            .inst .top { font-weight: 700; font-size: 13px; }
-            .inst .mid { font-size: 12.5px; }
-            .inst .tit { font-weight: 700; font-size: 14px; margin-top: 2px; }
-            .inst .nome { font-weight: 700; font-size: 13px; margin-top: 2px; }
-            .inst .sub { font-size: 12.5px; }
+.header{
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 2px solid var(--brand);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
 
-            .grid-campos {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px 16px;
-            margin-bottom: 10px;
-            }
+.logo{
+  width: 74px;
+  border-radius: 12px;
+}
 
-            .campo {
-            display: grid;
-            grid-template-columns: 115px 1fr;
-            gap: 8px;
-            align-items: end;
-            }
+.inst{
+  line-height: 1.15;
+}
 
-            .label {
-            font-weight: 700;
-            white-space: nowrap;
-            }
+.inst .top{
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: .4px;
+}
 
-            .linha {
-            border-bottom: 1px solid #000;
-            min-height: 18px;
-            padding: 1px 3px 2px;
-            }
+.inst .mid{
+  font-size: 11.8px;
+  color: var(--muted);
+}
 
-            .span-2 { grid-column: 1 / -1; }
+.inst .tit{
+  font-weight: 800;
+  font-size: 13.5px;
+  margin-top: 2px;
+}
 
-            .section { margin-top: 10px; }
+.inst .nome{
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-top: 2px;
+}
 
-            .section .title {
-            font-weight: 700;
-            margin-bottom: 4px;
-            letter-spacing: .2px;
-            }
+.ficha-box{
+  text-align: right;
+}
 
-            .checkbox-ato {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            background: #e0f2fe;
-            border: 1px solid #0284c7;
-            border-radius: 5px;
-            font-weight: 700;
-            font-size: 13.5px;
-            }
+.ficha-box .label{
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
 
-            .checkbox-box {
-            width: 14px;
-            height: 14px;
-            background: #0284c7;
-            border: 1px solid #0284c7;
-            }
+.ficha-box .numero{
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
 
-            .big-box {
-            border: 1px solid #000;
-            padding: 6px;
-            min-height: 42px;
-            }
+/* =========================
+   BLOCO SUPERIOR RESUMO
+========================= */
 
-            .tabela {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            }
+.top-grid{
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 14px;
+  margin-bottom: 12px;
+}
 
-            .tabela th, .tabela td {
-            border-bottom: 1px solid #000;
-            padding: 4px 3px;
-            }
+.card{
+  border: 1px solid var(--soft);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
 
-            .tabela th {
-            font-weight: 700;
-            text-align: left;
-            }
+.card h4{
+  margin: 0 0 6px 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--muted);
+}
 
-            .right { text-align: right; }
+.info-line{
+  margin-bottom: 4px;
+}
 
-            .valor-ato {
-            font-size: 14px;
-            font-weight: 700;
-            }
+.info-line strong{
+  font-weight: 700;
+}
 
-            .total {
-            font-weight: 700;
-            }
-            </style>
-            </head>
+/* =========================
+   ATO DESTACADO
+========================= */
 
-            <body>
+.ato-box{
+  border: 1px solid var(--accent);
+  background: rgba(2,132,199,.08);
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-            <div class="header">
-            <img class="logo" src="${apiUrl('assets/img/logo.png')}" alt="Logo">
-            <div class="inst">
-                <div class="top">REPÚBLICA FEDERATIVA DO BRASIL</div>
-                <div class="mid">Estado do Paraná - Comarca de Irati</div>
-                <div class="tit">2º Tabelionato de Notas de Irati</div>
-                <div class="nome">CRISTINA TONET COLODEL</div>
-                <div class="sub">Tabeliã de Notas</div>
-            </div>
-            </div>
+.ato-box::before{
+  content:"";
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  border-radius: 4px;
+}
 
-            <div class="grid-campos">
-            <div class="campo">
-                <div class="label">Capa/Ficha:</div>
-                <div class="linha">${p.ficha || ''}</div>
-            </div>
+/* =========================
+   PARTES
+========================= */
 
-            <div class="campo">
-                <div class="label">Data:</div>
-                <div class="linha">${
-                p.data_apresentacao
-                    ? new Date(String(p.data_apresentacao) + 'T00:00:00').toLocaleDateString('pt-BR')
-                    : ''
-                }</div>
-            </div>
+.section{
+  margin-top: 10px;
+}
 
-            <div class="campo span-2">
-                <div class="label">Apresentante:</div>
-                <div class="linha">${p.apresentante || ''}</div>
-            </div>
+.section h3{
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 4px;
+  color: var(--muted);
+}
 
-            <div class="campo">
-                <div class="label">Contato:</div>
-                <div class="linha">${p.contato || ''}</div>
-            </div>
+.box{
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  border-radius: 10px;
+  min-height: 40px;
+}
 
-            <div class="campo">
-                <div class="label">Digitador:</div>
-                <div class="linha">${p.digitador || ''}</div>
-            </div>
-            </div>
+/* =========================
+   IMÓVEIS
+========================= */
 
-            <div class="section">
-            <div class="title">ATO</div>
-            <div class="checkbox-ato">
-                <div class="checkbox-box"></div>
-                ${p.ato || ''}
-            </div>
-            </div>
+.imovel-list div{
+  margin-bottom: 3px;
+}
 
-            <div class="section">
-            <div class="title">OUTORGANTE(S)</div>
-            <div class="big-box">${p.outorgantes || ''}</div>
-            </div>
+/* =========================
+   VALORES
+========================= */
 
-            <div class="section">
-            <div class="title">OUTORGADO(S)</div>
-            <div class="big-box">${p.outorgados || ''}</div>
-            </div>
+.valores{
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
 
-            <div class="section">
-            <div class="title">ÁREA / MATRÍCULA</div>
-            <div class="big-box">
-                ${
-                (Array.isArray(imoveis) && imoveis.length)
-                    ? imoveis.map(i => `
-                        <div>${(i.matricula || '')}${(i.area ? ' — ' + i.area : '')}</div>
-                    `).join('')
-                    : ''
-                }
-            </div>
-            </div>
+.valor-ato{
+  font-size: 13.5px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
 
-            <div class="section">
-            <div class="title">VALORES</div>
+/* “card” da tabela */
+.valores-box{
+  border: 1px solid var(--soft);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15,23,42,.02);
+}
 
-            <div class="campo" style="margin-bottom:8px;">
-                <div class="label">Valor do ato:</div>
-                <div class="linha valor-ato">
-                ${
-                    (p.valor_ato && Number(p.valor_ato) > 0)
-                    ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : ''
-                }
-                </div>
-            </div>
+/* cabeçalho da tabela mais legível */
+.tabela{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 11.5px;
+}
 
-            ${
-                (Array.isArray(valores) && valores.length)
-                ? `
-                    <table class="tabela">
-                    <thead>
-                        <tr>
-                        <th>Valores adicionais</th>
-                        <th class="right" style="width:120px;">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${valores.map(v => `
-                        <tr>
-                            <td>${v.descricao || ''}</td>
-                            <td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                        `).join('')}
-                        <tr>
-                        <td class="total">Total adicional</td>
-                        <td class="right total">R$ ${Number(totalAdicional || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                    </tbody>
-                    </table>
-                `
-                : ''
-            }
-            </div>
+.tabela thead th{
+  background: rgba(2,132,199,.08);
+  color: #0f172a;
+  font-weight: 800;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(2,132,199,.25);
+}
 
-            <div class="section">
-            <div class="title">OBSERVAÇÕES</div>
-            <div class="big-box">${p.observacoes || ''}</div>
-            </div>
+.tabela thead th:first-child{
+  border-top-left-radius: 12px;
+}
 
-            <script>
-            window.onload = function() {
-            setTimeout(() => window.print(), 250);
-            };
-            </script>
+.tabela thead th:last-child{
+  border-top-right-radius: 12px;
+}
 
-            </body>
-            </html>
+.tabela tbody td{
+  padding: 7px 10px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(15,23,42,.08);
+}
+
+.tabela tbody tr:nth-child(even) td{
+  background: rgba(255,255,255,.7);
+}
+
+/* coluna de valor bem “colada” à direita, com número mais forte */
+.tabela td.right,
+.tabela th.right{
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela td.right{
+  font-weight: 700;
+}
+
+/* total separado, com destaque visual */
+.total-card{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+  background: rgba(2,132,199,.10);
+  border-top: 1px solid rgba(2,132,199,.25);
+  font-weight: 900;
+}
+
+.total-card .muted{
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+
+.total-card .amount{
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================
+   OBSERVAÇÕES
+========================= */
+
+.obs{
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+</style>
+</head>
+
+<body>
+<div class="sheet">
+
+<div class="header">
+  <img class="logo" src="${apiUrl('assets/img/logo.png')}" />
+  <div class="inst">
+    <div class="top">REPÚBLICA FEDERATIVA DO BRASIL</div>
+    <div class="mid">Estado do Paraná – Comarca de Irati</div>
+    <div class="tit">2º Tabelionato de Notas de Irati</div>
+    <div class="nome">CRISTINA TONET COLODEL</div>
+  </div>
+  <div class="ficha-box">
+    <div class="label">Ficha</div>
+    <div class="numero">${p.ficha || ''}</div>
+  </div>
+</div>
+
+<div class="top-grid">
+  <div class="card">
+    <h4>Apresentação</h4>
+    <div class="info-line"><strong>Data:</strong> ${
+      p.data_apresentacao
+        ? new Date(String(p.data_apresentacao) + 'T00:00:00').toLocaleDateString('pt-BR')
+        : ''
+    }</div>
+    <div class="info-line"><strong>Apresentante:</strong> ${p.apresentante || ''}</div>
+    <div class="info-line"><strong>Contato:</strong> ${p.contato || ''}</div>
+    <div class="info-line"><strong>Digitador:</strong> ${p.digitador || ''}</div>
+  </div>
+
+  <div class="card">
+    <h4>Ato</h4>
+    <div class="ato-box">${p.ato || ''}</div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Outorgante(s)</h3>
+  <div class="box">${p.outorgantes || ''}</div>
+</div>
+
+<div class="section">
+  <h3>Outorgado(s)</h3>
+  <div class="box">${p.outorgados || ''}</div>
+</div>
+
+<div class="section">
+  <h3>Área / Matrícula</h3>
+  <div class="box imovel-list">
+    ${
+      (Array.isArray(imoveis) && imoveis.length)
+        ? imoveis.map(i => `
+          <div>${(i.matricula || '')}${(i.area ? ' — ' + i.area : '')}</div>
+        `).join('')
+        : ''
+    }
+  </div>
+</div>
+
+<div class="valores">
+  <div class="valor-ato">
+    Valor do ato: ${
+      (p.valor_ato && Number(p.valor_ato) > 0)
+        ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR',{minimumFractionDigits:2})}`
+        : ''
+    }
+  </div>
+
+  ${
+  (Array.isArray(valores) && valores.length)
+    ? `
+    <div class="valores-box">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th>Valores adicionais</th>
+            <th class="right">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${valores.map(v => `
+            <tr>
+              <td>${v.descricao || ''}</td>
+              <td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div class="total-card">
+        <div>
+          <div class="muted">Total adicional</div>
+        </div>
+        <div class="amount">R$ ${Number(totalAdicional || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      </div>
+    </div>
+    `
+    : ''
+}
+</div>
+
+<div class="obs">
+  <h3>Observações</h3>
+  <div class="box">${p.observacoes || ''}</div>
+</div>
+
+</div>
+
+<script>
+window.onload = () => setTimeout(() => window.print(), 200);
+</script>
+
+</body>
+</html>
 `;
 
         const w = window.open('', '_blank');
