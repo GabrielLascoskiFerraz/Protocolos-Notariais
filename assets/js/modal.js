@@ -907,7 +907,7 @@ body{
 </div>
 
 <div class="section">
-  <h3>Área / Matrícula</h3>
+  <h3>Matrícula / Área</h3>
   <div class="box imovel-list">
     ${
       (Array.isArray(imoveis) && imoveis.length)
