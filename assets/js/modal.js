@@ -546,6 +546,30 @@ export function formatarDataHora(data) {
     });
 }
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => {
+        const entities = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            '\'': '&#39;'
+        };
+
+        return entities[char] || char;
+    });
+}
+
+function formatarValorMoedaPdf(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '';
+
+    return `R$ ${number.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    })}`;
+}
+
 /* =========================================================
    GERAR PDF (FICHA)
    ======================================================= */
@@ -565,15 +589,26 @@ export function gerarPdfFicha() {
         if (!p || p.error) return;
 
         const totalAdicional = (valores || []).reduce((acc, v) => acc + parseFloat(v.valor || 0), 0);
-        const hasValoresAdicionais = Array.isArray(valores) && valores.length > 0;
-        const hasImoveis = Array.isArray(imoveis) && imoveis.length > 0;
+        const valoresImpressao = Array.isArray(valores)
+            ? valores.map((v) => ({
+                descricao: v?.descricao ?? '',
+                valor: v?.valor ?? ''
+            }))
+            : [];
+
+        while (valoresImpressao.length < 3) {
+            valoresImpressao.push({
+                descricao: '',
+                valor: ''
+            });
+        }
 
                         const html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>Ficha ${p.ficha || p.id}</title>
+<title>Ficha ${escapeHtml(p.ficha || p.id)}</title>
 
 <style>
 @page { size: A4; margin: 14mm; }
@@ -650,6 +685,35 @@ body{
 
 .ficha-box{
   text-align: right;
+}
+
+.header-side{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.tag-urgente{
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.tag-urgente::before{
+  content:"";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.95);
 }
 
 .ficha-box .label{
@@ -745,6 +809,10 @@ body{
   min-height: 40px;
 }
 
+.text-preserve{
+  white-space: pre-wrap;
+}
+
 /* =========================
    IMÓVEIS
 ========================= */
@@ -801,9 +869,13 @@ body{
   border-top-right-radius: 12px;
 }
 
+.tabela tbody tr{
+  height: 42px;
+}
+
 .tabela tbody td{
-  padding: 7px 10px;
-  vertical-align: top;
+  padding: 10px 10px;
+  vertical-align: middle;
   border-bottom: 1px solid rgba(15,23,42,.08);
 }
 
@@ -857,6 +929,11 @@ body{
   border-top: 1px solid var(--line);
 }
 
+.obs-box{
+  min-height: 96px;
+  line-height: 1.45;
+}
+
 </style>
 </head>
 
@@ -871,9 +948,12 @@ body{
     <div class="tit">2º Tabelionato de Notas de Irati</div>
     <div class="nome">CRISTINA TONET COLODEL</div>
   </div>
-  <div class="ficha-box">
-    <div class="label">Ficha</div>
-    <div class="numero">${p.ficha || ''}</div>
+  <div class="header-side">
+    ${p.urgente == 1 ? '<div class="tag-urgente">Urgente</div>' : ''}
+    <div class="ficha-box">
+      <div class="label">Ficha</div>
+      <div class="numero">${escapeHtml(p.ficha || '')}</div>
+    </div>
   </div>
 </div>
 
@@ -885,25 +965,25 @@ body{
         ? new Date(String(p.data_apresentacao) + 'T00:00:00').toLocaleDateString('pt-BR')
         : ''
     }</div>
-    <div class="info-line"><strong>Apresentante:</strong> ${p.apresentante || ''}</div>
-    <div class="info-line"><strong>Contato:</strong> ${p.contato || ''}</div>
-    <div class="info-line"><strong>Digitador:</strong> ${p.digitador || ''}</div>
+    <div class="info-line"><strong>Apresentante:</strong> ${escapeHtml(p.apresentante || '')}</div>
+    <div class="info-line"><strong>Contato:</strong> ${escapeHtml(p.contato || '')}</div>
+    <div class="info-line"><strong>Digitador:</strong> ${escapeHtml(p.digitador || '')}</div>
   </div>
 
   <div class="card">
     <h4>Ato</h4>
-    <div class="ato-box">${p.ato || ''}</div>
+    <div class="ato-box">${escapeHtml(p.ato || '')}</div>
   </div>
 </div>
 
 <div class="section">
   <h3>Outorgante(s)</h3>
-  <div class="box">${p.outorgantes || ''}</div>
+  <div class="box text-preserve">${escapeHtml(p.outorgantes || '')}</div>
 </div>
 
 <div class="section">
   <h3>Outorgado(s)</h3>
-  <div class="box">${p.outorgados || ''}</div>
+  <div class="box text-preserve">${escapeHtml(p.outorgados || '')}</div>
 </div>
 
 <div class="section">
@@ -912,7 +992,7 @@ body{
     ${
       (Array.isArray(imoveis) && imoveis.length)
         ? imoveis.map(i => `
-          <div>${(i.matricula || '')}${(i.area ? ' — ' + i.area : '')}</div>
+          <div>${escapeHtml(i.matricula || '')}${(i.area ? ' - ' + escapeHtml(i.area) : '')}</div>
         `).join('')
         : ''
     }
@@ -923,47 +1003,45 @@ body{
   <div class="valor-ato">
     Valor do ato: ${
       (p.valor_ato && Number(p.valor_ato) > 0)
-        ? `R$ ${Number(p.valor_ato).toLocaleString('pt-BR',{minimumFractionDigits:2})}`
+        ? formatarValorMoedaPdf(p.valor_ato)
         : ''
     }
   </div>
 
-  ${
-  (Array.isArray(valores) && valores.length)
-    ? `
-    <div class="valores-box">
-      <table class="tabela">
-        <thead>
+  <div class="valores-box">
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Valores adicionais</th>
+          <th class="right">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${valoresImpressao.map(v => `
           <tr>
-            <th>Valores adicionais</th>
-            <th class="right">Valor</th>
+            <td>${escapeHtml(v.descricao || '')}</td>
+            <td class="right">${
+              v.valor === '' || v.valor === null || typeof v.valor === 'undefined'
+                ? ''
+                : formatarValorMoedaPdf(v.valor)
+            }</td>
           </tr>
-        </thead>
-        <tbody>
-          ${valores.map(v => `
-            <tr>
-              <td>${v.descricao || ''}</td>
-              <td class="right">R$ ${Number(v.valor || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+        `).join('')}
+      </tbody>
+    </table>
 
-      <div class="total-card">
-        <div>
-          <div class="muted">Total adicional</div>
-        </div>
-        <div class="amount">R$ ${Number(totalAdicional || 0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+    <div class="total-card">
+      <div>
+        <div class="muted">Total adicional</div>
       </div>
+      <div class="amount">${formatarValorMoedaPdf(totalAdicional)}</div>
     </div>
-    `
-    : ''
-}
+  </div>
 </div>
 
 <div class="obs">
   <h3>Observações</h3>
-  <div class="box">${p.observacoes || ''}</div>
+  <div class="box obs-box text-preserve">${escapeHtml(p.observacoes || '')}</div>
 </div>
 
 </div>
