@@ -110,6 +110,11 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
     <button id="toggle-archived" class="btn-toggle-archived" aria-expanded="false" type="button">
         Mostrar arquivados
     </button>
+    <a class="btn-secondary topbar-link topbar-icon-link" href="gerador-qrcode.php" aria-label="Abrir gerador de QR Code" title="Gerador de QR Code">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4 0h4v2h-4v-2Zm-2 2h2v2h-2v-2Zm4 0h2v4h-2v-4Zm-6 2h4v2h-4v-2Z" fill="currentColor"/>
+        </svg>
+    </a>
     <div id="active-filters" class="filter-chips"></div>
 </header>
 
