@@ -13,6 +13,7 @@ Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andam
 ```
 /htdocs
 ├── index.php                 # Board Kanban
+├── gerador-qrcode.php        # Ferramenta de geracao de QR Code
 ├── config/
 │   ├── db.php                # Conexao PDO
 │   └── ato-cores.php         # Mapa centralizado de cores dos atos
@@ -40,10 +41,11 @@ Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andam
 │       ├── modal.js          # abrir/fechar modal + PDF
 │       ├── autosave.js       # autosave dos campos
 │       ├── search.js         # busca + filtros + sync incremental
-│       └── tags.js           # cores por ato
+│       ├── tags.js           # cores por ato
+│       └── qr-generator.js   # gerador de QR Code
 ├── tests/                    # Testes automatizados
-│   ├── php/                  # Testes PHP (PHPUnit)
-│   └── js/                   # Testes JS (Jest/Vitest)
+│   ├── php/                  # Runner de integracao em PHP CLI
+│   └── js/                   # Testes com node:test
 └── schema.sql                # Estrutura do banco
 ```
 
@@ -80,6 +82,7 @@ http://localhost/protocolos
 - Coluna Arquivados oculta por padrao (botao na topbar)
 - Tags personalizadas por protocolo
 - PDF da ficha (A4)
+- Gerador interno de QR Code com download em PNG
 - Sincronizacao incremental (por `updated_at`)
 - Paginação por coluna (lazy-load)
 
@@ -90,6 +93,7 @@ Tabelas principais (veja detalhes em `schema.sql`):
 - `protocolos`
 - `protocolos_andamentos`
 - `protocolos_valores`
+- `protocolos_imoveis`
 - `protocolos_tags`
 - `vw_protocolos_board`
 
@@ -158,7 +162,7 @@ Exemplo de resposta:
 |------|-------|
 | Metodo | `GET` |
 | Parametros | `q` (texto), `ato`, `digitador`, `urgente` (0/1), `tag_custom`, `status`, `limit` (default 50), `offset` (default 0) |
-| Resposta | `{ "items": [...], "server_now": "2025-03-15 14:22:00" }` |
+| Resposta | `{ "items": [...], "total": 123, "server_now": "2025-03-15 14:22:00" }` |
 
 A busca textual (`q`) pesquisa nos campos: `ficha`, `digitador`, `apresentante`, `outorgantes`, `outorgados`, `ato`.
 
@@ -198,9 +202,9 @@ Executa soft-delete (marca `deletado = 1`). O registro permanece no banco.
 |------|-------|
 | Metodo | `GET` |
 | Parametros | `since` (timestamp `YYYY-MM-DD HH:MM:SS`) |
-| Resposta | `{ "items": [...], "deleted": [1, 2], "server_now": "..." }` |
+| Resposta | `{ "items": [...], "server_now": "..." }` |
 
-Retorna apenas protocolos modificados desde `since`. Usado pelo auto-sync do frontend.
+Retorna apenas protocolos modificados desde `since`. Registros removidos por soft-delete continuam vindo em `items`, com `deletado = 1`, para que o frontend remova o card localmente. Usado pelo auto-sync do frontend.
 
 ---
 
@@ -368,7 +372,7 @@ Retorna o mapa estatico de cores definido em `config/ato-cores.php`. Usado pelo 
 
 ### Codigos de erro
 
-Todas as APIs retornam os seguintes codigos HTTP em caso de erro:
+As APIs usam JSON como formato padrao de resposta e retornam os seguintes codigos HTTP em caso de erro:
 
 | Codigo | Significado |
 |--------|-------------|
@@ -381,6 +385,24 @@ Formato da resposta de erro:
 
 ```json
 { "error": "Descricao do erro" }
+```
+
+## Testes
+
+### PHP (integracao)
+
+Runner em PHP CLI, sem PHPUnit:
+
+```bash
+/Applications/XAMPP/xamppfiles/bin/php tests/php/ApiTestRunner.php http://localhost/Protocolos-Notariais/
+```
+
+### JavaScript
+
+Testes usando o runner nativo do Node (`node:test`):
+
+```bash
+node --test tests/js/helpers.test.js tests/js/ato-cores.test.js
 ```
 
 ## Sincronizacao e desempenho
