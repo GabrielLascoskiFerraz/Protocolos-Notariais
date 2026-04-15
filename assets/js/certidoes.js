@@ -43,6 +43,7 @@ const alertCloseBtn = document.getElementById('cert-alert-close');
 const alertList = document.getElementById('cert-alert-list');
 
 let parsedDocs = [];
+let nextDocId = 1;
 
 const TYPE_ORDER = ['municipal', 'estadual', 'federal', 'trabalhista', 'desconhecido'];
 const TYPE_LABELS = {
@@ -337,6 +338,10 @@ function resolveIdentities(docs) {
     const nameByCpf = new Map();
 
     docs.forEach(doc => {
+        doc.name = normalizeName(doc.extractedName || '');
+    });
+
+    docs.forEach(doc => {
         const cpf = normalizeCpf(doc.cpf);
         const name = normalizeName(doc.name || '');
         if (cpf && name) {
@@ -481,6 +486,9 @@ function renderResults() {
                         <span class="cert-badge ${getValidityBadgeClass(doc.validityState)}">${escapeHtml(getValidityLabel(doc.validityState))}</span>
                     </div>
                 </div>
+                <button type="button" class="cert-remove-btn" data-remove-cert-id="${escapeHtml(doc.id)}" aria-label="Excluir certidão">
+                    Excluir
+                </button>
             </div>
             <div class="cert-meta-grid">
                 <div><strong>Tipo</strong><span>${escapeHtml(TYPE_LABELS[doc.type] || doc.type)}</span></div>
@@ -564,7 +572,7 @@ async function parseFile(file) {
     const text = await extractPdfText(file);
     const type = detectType(text);
     const status = detectStatus(text);
-    const name = extractName(text);
+    const extractedName = extractName(text);
     const cpf = extractCpf(text);
     const number = extractNumber(text, type);
     const issueDate = extractIssueDate(text, type);
@@ -573,11 +581,13 @@ async function parseFile(file) {
     const validityState = getValidityState(expiryDate);
 
     return sanitizeDoc({
+        id: nextDocId++,
         fileName: file.name,
         text,
         type,
         status,
-        name,
+        extractedName,
+        name: extractedName,
         cpf,
         number,
         issueDate,
@@ -600,9 +610,11 @@ async function handleFiles(files) {
             batchDocs.push(parsed);
         } catch (error) {
             const fallback = {
+                id: nextDocId++,
                 fileName: file.name,
                 type: 'desconhecido',
                 status: 'nao identificado',
+                extractedName: '',
                 name: '',
                 cpf: '',
                 number: '',
@@ -645,6 +657,15 @@ async function handleFiles(files) {
     }
 }
 
+function removeDoc(docId) {
+    parsedDocs = parsedDocs.filter(doc => String(doc.id) !== String(docId));
+    resolveIdentities(parsedDocs);
+    updateWarnings();
+    renderResults();
+    generateOutput();
+    closeAlertModal();
+}
+
 async function copyOutput() {
     if (!outputEl || !outputEl.value.trim()) return;
     try {
@@ -663,6 +684,7 @@ async function copyOutput() {
 function clearAll() {
     parsedDocs = [];
     hideWarning();
+    closeAlertModal();
     renderResults();
     generateOutput();
 }
@@ -723,6 +745,12 @@ if (dropzone) {
         void handleFiles(event.dataTransfer?.files || []);
     });
 }
+
+resultsEl?.addEventListener('click', event => {
+    const removeButton = event.target.closest('[data-remove-cert-id]');
+    if (!removeButton) return;
+    removeDoc(removeButton.getAttribute('data-remove-cert-id'));
+});
 
 copyBtn?.addEventListener('click', () => {
     void copyOutput();
