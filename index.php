@@ -156,6 +156,25 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
 
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+<div id="dashboard-calendar-modal" class="dashboard-calendar-modal hidden" aria-hidden="true">
+    <div id="dashboard-calendar-overlay" class="dashboard-calendar-overlay"></div>
+    <section class="dashboard-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="dashboard-calendar-title">
+        <div class="dashboard-calendar-head">
+            <div>
+                <span class="dashboard-calendar-kicker">Agenda de hoje</span>
+                <h2 id="dashboard-calendar-title">Novo compromisso</h2>
+            </div>
+            <button id="dashboard-calendar-close" class="dashboard-calendar-close" type="button" aria-label="Fechar aviso">×</button>
+        </div>
+        <p id="dashboard-calendar-summary" class="dashboard-calendar-summary"></p>
+        <div id="dashboard-calendar-events" class="dashboard-calendar-events"></div>
+        <div class="dashboard-calendar-actions">
+            <a class="btn-secondary" href="calendario.php">Abrir agenda</a>
+            <button id="dashboard-calendar-ok" class="btn-primary" type="button">Entendi</button>
+        </div>
+    </section>
+</div>
+
 <!-- Template reutilizado pelo JS para criar cards (fonte unica de estrutura) -->
 <template id="card-template">
     <div class="card card-appear" draggable="true">
@@ -177,6 +196,7 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
 </template>
 
 <script type="module" src="assets/js/tools-menu.js"></script>
+<script type="module" src="assets/js/calendar-alerts.js"></script>
 
 </body>
 </html>
