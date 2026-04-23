@@ -4,3 +4,4 @@
 
 # arquivos locais
 import.php
+cache/calendar-cache.json

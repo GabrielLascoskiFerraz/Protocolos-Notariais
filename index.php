@@ -137,6 +137,12 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
                 </svg>
                 <span>Leitor de Certidões</span>
             </a>
+            <a class="tools-menu-item" href="calendario.php" role="menuitem">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H6V3a1 1 0 0 1 1-1Zm12.5 8h-15v8.5a.5.5 0 0 0 .5.5h14a.5.5 0 0 0 .5-.5V10ZM5 6a.5.5 0 0 0-.5.5V8h15V6.5A.5.5 0 0 0 19 6H5Zm2 7h3v3H7v-3Zm5 0h3v3h-3v-3Z" fill="currentColor"/>
+                </svg>
+                <span>Consultar Agenda</span>
+            </a>
         </div>
     </div>
     <div id="active-filters" class="filter-chips"></div>

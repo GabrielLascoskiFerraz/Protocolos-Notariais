@@ -68,7 +68,9 @@ function hideWarning() {
 
 function normalizeSpaces(value) {
     return String(value || '')
+        .replace(/\u00AD/g, '')
         .replace(/\u00A0/g, ' ')
+        .replace(/([A-Za-zÀ-ÿ])-\s*\n\s*([A-Za-zÀ-ÿ])/g, '$1$2')
         .replace(/[ \t]+/g, ' ')
         .replace(/\s+\n/g, '\n')
         .replace(/\n\s+/g, '\n')
@@ -77,6 +79,15 @@ function normalizeSpaces(value) {
 
 function normalizeLineText(value) {
     return normalizeSpaces(value).replace(/\n/g, ' ');
+}
+
+function normalizeForDetection(value) {
+    return normalizeLineText(value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
 }
 
 function formatDate(value) {
@@ -119,54 +130,71 @@ function escapeHtml(text) {
 }
 
 function detectType(text) {
-    const t = text.toLowerCase();
-    if (t.includes('prefeitura municipal') || t.includes('secretaria municipal da fazenda') || t.includes('certidão negativa de débitos municipais') || t.includes('certidao negativa de debitos municipais')) {
+    const t = normalizeForDetection(text);
+    if (
+        t.includes('prefeitura municipal') ||
+        t.includes('secretaria municipal da fazenda') ||
+        t.includes('certidao negativa de debitos municipais') ||
+        t.includes('certidao positiva de debitos') ||
+        t.includes('tributos municipais')
+    ) {
         return 'municipal';
     }
-    if (t.includes('receita estadual do paraná') || t.includes('dívida ativa estadual') || t.includes('divida ativa estadual') || t.includes('débitos tributários e de dívida ativa estadual')) {
+    if (
+        t.includes('receita estadual do parana') ||
+        t.includes('divida ativa estadual') ||
+        t.includes('debitos tributarios e de divida ativa estadual') ||
+        t.includes('portal de emissao de certidoes')
+    ) {
         return 'estadual';
     }
-    if (t.includes('procuradoria-geral da fazenda nacional') || t.includes('tributos federais e à dívida ativa da união') || t.includes('tributos federais e a divida ativa da uniao')) {
+    if (t.includes('procuradoria-geral da fazenda nacional') || t.includes('tributos federais e a divida ativa da uniao')) {
         return 'federal';
     }
-    if (t.includes('tribunal superior do trabalho') || t.includes('débitos trabalhistas') || t.includes('debitos trabalhistas') || t.includes('cndt')) {
+    if (t.includes('tribunal superior do trabalho') || t.includes('debitos trabalhistas') || t.includes('cndt')) {
         return 'trabalhista';
     }
     return 'desconhecido';
 }
 
+function isPortalPendenciaEstadual(text, type) {
+    if (type !== 'estadual') return false;
+    const t = normalizeForDetection(text);
+    return t.includes('existe(m) pendencia(s) que impede(m) a emissao de certidao negativa ou positiva com efeito de negativa');
+}
+
 function detectStatus(text) {
-    const t = text.toLowerCase();
+    const t = normalizeForDetection(text);
+    const hasPositivePendencias = t.includes('constam pendencias') && !t.includes('nao constam pendencias');
+    const hasPositiveInadimplencia = t.includes('consta como inadimplente') && !t.includes('nao consta como inadimplente');
+    const hasPositiveAcoes = t.includes('constam acoes trabalhistas') && !t.includes('nao constam acoes trabalhistas');
 
     if (t.includes('positiva com efeitos de negativa') || t.includes('positiva com efeito de negativa')) {
         return 'positiva com efeitos de negativa';
     }
 
     if (
-        t.includes('certidão negativa') ||
-        t.includes('certidao negativa') ||
-        t.includes('situação regular') ||
-        t.includes('situacao regular') ||
-        t.includes('não constam pendências') ||
-        t.includes('nao constam pendencias') ||
-        t.includes('não existir pendências') ||
-        t.includes('nao existir pendencias') ||
-        t.includes('não consta como inadimplente') ||
-        t.includes('nao consta como inadimplente') ||
-        t.includes('não consta') ||
-        t.includes('nao consta')
+        t.includes('certidao positiva de debitos') ||
+        t.includes('certidao positiva para cpf ou cnpj que possua debito exigivel') ||
+        t.includes('constam debitos') ||
+        hasPositivePendencias ||
+        hasPositiveInadimplencia ||
+        hasPositiveAcoes ||
+        t.includes('existe(m) pendencia(s) que impede(m) a emissao de certidao negativa ou positiva com efeito de negativa')
     ) {
-        return 'negativa';
+        return 'positiva';
     }
 
     if (
-        t.includes('certidão positiva') ||
-        t.includes('certidao positiva') ||
-        t.includes('constam pendências') ||
-        t.includes('constam pendencias') ||
-        t.includes('inadimplente')
+        t.includes('certidao negativa') ||
+        t.includes('situacao regular') ||
+        t.includes('nao constam pendencias') ||
+        t.includes('nao existir pendencias') ||
+        t.includes('nao consta como inadimplente') ||
+        t.includes('nao constam acoes trabalhistas') ||
+        t.includes('nao possui debito')
     ) {
-        return 'positiva';
+        return 'negativa';
     }
 
     return 'nao identificado';
@@ -376,6 +404,14 @@ function updateWarnings() {
         messages.push(`Certidões vencidas identificadas: ${expired.join(' | ')}`);
     }
 
+    const notIssued = parsedDocs
+        .filter(doc => doc.status === 'nao emitida')
+        .map(doc => `${doc.fileName} não gerou certidão emitida por existir pendência no portal`);
+
+    if (notIssued.length) {
+        messages.push(`Certidões não emitidas identificadas: ${notIssued.join(' | ')}`);
+    }
+
     if (messages.length) {
         showWarning(messages.join(' '));
     } else {
@@ -410,6 +446,7 @@ function isComplete(doc) {
     if (!doc.type || doc.type === 'desconhecido') return false;
     if (!doc.status || doc.status === 'nao identificado') return false;
     if (!doc.issueDate) return false;
+    if (doc.excludeFromOutput) return false;
     if (['municipal', 'estadual', 'federal', 'trabalhista'].includes(doc.type) && !doc.number) return false;
     return true;
 }
@@ -423,6 +460,7 @@ function compareDocs(a, b) {
 function getStatusBadgeClass(status) {
     if (status === 'negativa') return 'ok';
     if (status === 'positiva' || status === 'positiva com efeitos de negativa') return 'bad';
+    if (status === 'nao emitida') return 'warn';
     return 'warn';
 }
 
@@ -440,6 +478,7 @@ function getValidityLabel(state) {
 
 function getStatusLabel(status) {
     if (status === 'nao identificado') return 'Status não identificado';
+    if (status === 'nao emitida') return 'Não emitida';
     return status;
 }
 
@@ -498,7 +537,7 @@ function renderResults() {
                 <div><strong>Órgão emissor</strong><span>${escapeHtml(doc.issuer || 'Não identificado')}</span></div>
                 <div><strong>Data de emissão</strong><span>${escapeHtml(doc.issueDate || 'Não identificado')}</span></div>
                 <div><strong>Validade</strong><span>${escapeHtml(doc.expiryDate || 'Não identificada')}</span></div>
-                <div><strong>Observação</strong><span>${escapeHtml(doc.error || 'Leitura concluída')}</span></div>
+                <div><strong>Observação</strong><span>${escapeHtml(doc.note || doc.error || 'Leitura concluída')}</span></div>
             </div>
         `;
         resultsEl.appendChild(item);
@@ -571,7 +610,8 @@ function sanitizeDoc(doc) {
 async function parseFile(file) {
     const text = await extractPdfText(file);
     const type = detectType(text);
-    const status = detectStatus(text);
+    const portalPendenciaEstadual = isPortalPendenciaEstadual(text, type);
+    const status = portalPendenciaEstadual ? 'nao emitida' : detectStatus(text);
     const extractedName = extractName(text);
     const cpf = extractCpf(text);
     const number = extractNumber(text, type);
@@ -594,6 +634,8 @@ async function parseFile(file) {
         expiryDate,
         validityState,
         issuer,
+        excludeFromOutput: portalPendenciaEstadual,
+        note: portalPendenciaEstadual ? 'Pendências no portal impedem a emissão da certidão estadual.' : '',
         error: ''
     });
 }
@@ -622,6 +664,8 @@ async function handleFiles(files) {
                 expiryDate: '',
                 validityState: 'nao identificada',
                 issuer: '',
+                excludeFromOutput: false,
+                note: '',
                 error: error?.message || 'Erro ao processar arquivo.'
             };
             parsedDocs.push(fallback);
@@ -648,6 +692,13 @@ async function handleFiles(files) {
             alertItems.push({
                 fileName: doc.fileName,
                 message: `Certidão ${doc.status}.`
+            });
+        }
+
+        if (doc.status === 'nao emitida') {
+            alertItems.push({
+                fileName: doc.fileName,
+                message: 'Pendências no portal impedem a emissão desta certidão estadual.'
             });
         }
     });
