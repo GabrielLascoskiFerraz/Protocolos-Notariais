@@ -143,6 +143,24 @@ ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
                 </svg>
                 <span>Consultar Agenda</span>
             </a>
+            <div class="tools-menu-divider" role="separator"></div>
+            <section class="tools-density-panel" aria-label="Tamanho e densidade da interface">
+                <div class="tools-density-head">
+                    <span>Interface</span>
+                    <strong id="ui-density-label">Padrão</strong>
+                </div>
+                <div class="tools-density-controls" role="group" aria-label="Ajustar tamanho da interface">
+                    <button id="ui-density-minus" class="tools-density-btn" type="button" aria-label="Diminuir interface">
+                        <span>A−</span>
+                    </button>
+                    <button id="ui-density-reset" class="tools-density-reset" type="button" aria-label="Restaurar interface padrão">
+                        100%
+                    </button>
+                    <button id="ui-density-plus" class="tools-density-btn is-plus" type="button" aria-label="Aumentar interface">
+                        <span>A+</span>
+                    </button>
+                </div>
+            </section>
         </div>
     </div>
     <div id="active-filters" class="filter-chips"></div>
