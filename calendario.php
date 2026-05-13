@@ -1,110 +1,91 @@
 <?php
-$basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
-$baseHref = ($basePath === '') ? '/' : $basePath . '/';
+require __DIR__ . '/components/app-layout.php';
+
+protocolos_render_head(
+    'Consultar Agenda',
+    'Agenda sincronizada por calendário externo.',
+    'apps/agenda/index.js?v=' . protocolos_asset_version('apps/agenda/index.js'),
+    ['body_class' => 'apollo-body']
+);
+
+protocolos_render_app_start(
+    'calendario.php',
+    'Agenda',
+    'Agenda',
+    '',
+    [],
+    ['page_class' => 'page-agenda', 'hide_header' => true]
+);
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Consultar Agenda</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <base href="<?= htmlspecialchars($baseHref) ?>">
-
-    <link rel="icon" href="assets/img/logo.png">
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <script>window.BASE_URL = <?= json_encode($baseHref) ?>;</script>
-    <script type="module" src="assets/js/calendar.js"></script>
-</head>
-<body class="calendar-page-body">
-    <header class="topbar">
-        <div class="calendar-topbar-copy">
-            <h1>Consultar Agenda</h1>
-            <p class="calendar-topbar-subtitle">Compromissos sincronizados da agenda do cartório.</p>
-        </div>
-        <div class="topbar-actions">
-            <a class="btn-secondary topbar-link" href="index.php">Voltar aos protocolos</a>
-        </div>
-    </header>
-
-    <main class="calendar-main">
-        <section class="calendar-shell">
-            <div class="calendar-toolbar">
-                <div>
-                    <span class="calendar-eyebrow">Agenda</span>
-                    <h2 id="calendar-month-label" class="calendar-title">Carregando...</h2>
-                </div>
-                <div class="calendar-actions">
-                    <button id="calendar-prev" class="btn-secondary" type="button" aria-label="Mês anterior">‹</button>
-                    <button id="calendar-today" class="btn-secondary" type="button">Hoje</button>
-                    <button id="calendar-next" class="btn-secondary" type="button" aria-label="Próximo mês">›</button>
-                </div>
+    <section class="agenda-workspace" aria-label="Agenda do cartório">
+        <header class="agenda-command">
+            <div>
+                <span class="eyebrow">Calendário</span>
+                <h2 id="agenda-month-label">Carregando agenda</h2>
+                <p>Visualize os compromissos do cartório.</p>
             </div>
+            <div class="agenda-actions">
+                <span class="status-pill status-pill-soft" id="agenda-feedback" aria-live="polite">Carregando compromissos...</span>
+                <button class="button button-secondary agenda-refresh-button" type="button" id="agenda-refresh" aria-label="Atualizar calendário">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+                <button class="button button-secondary" type="button" id="agenda-prev" aria-label="Mês anterior">‹</button>
+                <button class="button button-secondary" type="button" id="agenda-today">Hoje</button>
+                <button class="button button-secondary" type="button" id="agenda-next" aria-label="Próximo mês">›</button>
+            </div>
+        </header>
 
-            <div id="calendar-feedback" class="calendar-feedback" aria-live="polite"></div>
+        <div class="agenda-layout">
+            <section class="agenda-month-panel surface" aria-label="Calendário mensal">
+                <div class="agenda-weekdays" aria-hidden="true">
+                    <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+                </div>
+                <div class="agenda-grid" id="agenda-grid" aria-label="Dias do mês"></div>
+            </section>
 
-            <div class="calendar-layout">
-                <section class="calendar-panel calendar-month-panel">
-                    <div class="calendar-weekdays" aria-hidden="true">
-                        <span>Seg</span>
-                        <span>Ter</span>
-                        <span>Qua</span>
-                        <span>Qui</span>
-                        <span>Sex</span>
-                        <span>Sáb</span>
-                        <span>Dom</span>
+            <aside class="agenda-side-panel surface" aria-label="Próximos compromissos">
+                <div class="surface-head surface-head-compact">
+                    <div>
+                        <span class="eyebrow">Próximos</span>
+                        <h2>Compromissos</h2>
                     </div>
-                    <div id="calendar-grid" class="calendar-grid" aria-label="Calendário mensal"></div>
-                </section>
+                </div>
+                <div class="agenda-upcoming" id="agenda-upcoming"></div>
+            </aside>
+        </div>
+    </section>
 
-                <aside class="calendar-panel calendar-agenda-panel">
-                    <div class="calendar-section-head">
-                        <span class="calendar-eyebrow">Próximos</span>
-                        <h2 class="calendar-side-title">Compromissos</h2>
-                    </div>
-                    <div id="calendar-upcoming" class="calendar-upcoming"></div>
-                </aside>
+    <dialog class="agenda-event-modal" id="agenda-event-modal" aria-labelledby="agenda-event-title">
+        <div class="agenda-event-shell">
+            <header>
+                <div>
+                    <span class="eyebrow" id="agenda-event-date">Compromisso</span>
+                    <h3 id="agenda-event-title">Compromisso</h3>
+                </div>
+                <button class="agenda-event-close" type="button" id="agenda-event-close" aria-label="Fechar detalhes">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                </button>
+            </header>
+            <div class="agenda-event-meta">
+                <div><span>Horário</span><strong id="agenda-event-time">-</strong></div>
+                <div><span>Local</span><strong id="agenda-event-location">-</strong></div>
             </div>
-        </section>
-    </main>
+            <p id="agenda-event-description" class="agenda-event-description">Sem descrição.</p>
+        </div>
+    </dialog>
 
-    <div id="calendar-event-modal" class="calendar-event-modal hidden" aria-hidden="true">
-        <div id="calendar-event-overlay" class="calendar-event-overlay"></div>
-        <section class="calendar-event-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-event-title">
-            <div class="calendar-event-dialog-head">
+    <dialog class="agenda-event-modal" id="agenda-day-modal" aria-labelledby="agenda-day-title">
+        <div class="agenda-event-shell agenda-day-shell">
+            <header>
                 <div>
-                    <span id="calendar-event-date" class="calendar-event-date-label"></span>
-                    <h2 id="calendar-event-title"></h2>
+                    <span class="eyebrow" id="agenda-day-label">Dia</span>
+                    <h3 id="agenda-day-title">Compromissos do dia</h3>
                 </div>
-                <button id="calendar-event-close" class="calendar-event-close" type="button" aria-label="Fechar detalhes">×</button>
-            </div>
-            <div class="calendar-event-detail-grid">
-                <div>
-                    <strong>Horário</strong>
-                    <span id="calendar-event-time"></span>
-                </div>
-                <div>
-                    <strong>Local</strong>
-                    <span id="calendar-event-location"></span>
-                </div>
-            </div>
-            <div id="calendar-event-description" class="calendar-event-description"></div>
-        </section>
-    </div>
-
-    <div id="calendar-day-modal" class="calendar-event-modal hidden" aria-hidden="true">
-        <div id="calendar-day-overlay" class="calendar-event-overlay"></div>
-        <section class="calendar-event-dialog calendar-day-dialog" role="dialog" aria-modal="true" aria-labelledby="calendar-day-title">
-            <div class="calendar-event-dialog-head">
-                <div>
-                    <span id="calendar-day-label" class="calendar-event-date-label"></span>
-                    <h2 id="calendar-day-title">Compromissos do dia</h2>
-                </div>
-                <button id="calendar-day-close" class="calendar-event-close" type="button" aria-label="Fechar lista">×</button>
-            </div>
-            <div id="calendar-day-events" class="calendar-day-list"></div>
-        </section>
-    </div>
-</body>
-</html>
+                <button class="agenda-event-close" type="button" id="agenda-day-close" aria-label="Fechar lista">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                </button>
+            </header>
+            <div class="agenda-day-list" id="agenda-day-events"></div>
+        </div>
+    </dialog>
+<?php protocolos_render_app_end(); ?>

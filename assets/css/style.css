@@ -1048,6 +1048,145 @@ body {
 }
 
 /* =========================================================
+   DOCUMENTOS DO PROTOCOLO
+   ======================================================= */
+
+.documentos-section {
+    overflow: hidden;
+}
+
+.documentos-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.documentos-feedback {
+    border: 1px solid #dbeafe;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    padding: 9px 10px;
+    word-break: break-word;
+}
+
+.documentos-feedback[data-state="success"] {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.documentos-feedback[data-state="error"] {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.documentos-feedback[data-state="loading"] {
+    border-color: #bae6fd;
+    background: #f0f9ff;
+    color: #075985;
+}
+
+.documentos-resumo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.documentos-resumo span,
+.documentos-resumo small {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+}
+
+.documentos-resumo .documentos-warn {
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #9a3412;
+}
+
+.documentos-lista {
+    display: grid;
+    gap: 8px;
+    max-height: 360px;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.documento-item {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    padding: 10px;
+}
+
+.documento-item.is-problem {
+    border-color: #fdba74;
+    background: #fff7ed;
+}
+
+.documento-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 30px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.documento-item.is-problem .documento-icon {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.documento-main {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.documento-main strong {
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.documento-main span,
+.documento-main em {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.documento-main em {
+    color: #9a3412;
+    font-style: normal;
+    font-weight: 700;
+}
+
+/* =========================================================
    TIMELINE (ANDAMENTOS)
    ======================================================= */
 

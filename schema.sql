@@ -42,6 +42,7 @@ CREATE TABLE `protocolos` (
   `valor_ato` decimal(14,2) DEFAULT NULL,
   `status` enum('PARA_DISTRIBUIR','EM_ANDAMENTO','PARA_CORRECAO','LAVRADOS','ARQUIVADOS') NOT NULL,
   `observacoes` text DEFAULT NULL,
+  `pasta_documentos` varchar(1024) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `urgente` tinyint(1) NOT NULL DEFAULT 0,
@@ -123,6 +124,7 @@ CREATE TABLE `vw_protocolos_board` (
 ,`valor_ato` decimal(14,2)
 ,`status` enum('PARA_DISTRIBUIR','EM_ANDAMENTO','PARA_CORRECAO','LAVRADOS','ARQUIVADOS')
 ,`observacoes` text
+,`pasta_documentos` varchar(1024)
 ,`created_at` timestamp
 ,`updated_at` timestamp
 ,`urgente` tinyint(1)
@@ -138,7 +140,7 @@ CREATE TABLE `vw_protocolos_board` (
 --
 DROP TABLE IF EXISTS `vw_protocolos_board`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_protocolos_board`  AS SELECT `p`.`id` AS `id`, `p`.`ficha` AS `ficha`, `p`.`ato` AS `ato`, `p`.`digitador` AS `digitador`, `p`.`apresentante` AS `apresentante`, `p`.`data_apresentacao` AS `data_apresentacao`, `p`.`contato` AS `contato`, `p`.`outorgantes` AS `outorgantes`, `p`.`outorgados` AS `outorgados`, `p`.`matricula` AS `matricula`, `p`.`area` AS `area`, `p`.`valor_ato` AS `valor_ato`, `p`.`status` AS `status`, `p`.`observacoes` AS `observacoes`, `p`.`created_at` AS `created_at`, `p`.`updated_at` AS `updated_at`, `p`.`urgente` AS `urgente`, `p`.`deletado` AS `deletado`, `p`.`tag_custom` AS `tag_custom`, coalesce(sum(`v`.`valor`),0) AS `total_valores` FROM (`protocolos` `p` left join `protocolos_valores` `v` on(`v`.`protocolo_id` = `p`.`id`)) GROUP BY `p`.`id` ;
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_protocolos_board`  AS SELECT `p`.`id` AS `id`, `p`.`ficha` AS `ficha`, `p`.`ato` AS `ato`, `p`.`digitador` AS `digitador`, `p`.`apresentante` AS `apresentante`, `p`.`data_apresentacao` AS `data_apresentacao`, `p`.`contato` AS `contato`, `p`.`outorgantes` AS `outorgantes`, `p`.`outorgados` AS `outorgados`, `p`.`matricula` AS `matricula`, `p`.`area` AS `area`, `p`.`valor_ato` AS `valor_ato`, `p`.`status` AS `status`, `p`.`observacoes` AS `observacoes`, `p`.`pasta_documentos` AS `pasta_documentos`, `p`.`created_at` AS `created_at`, `p`.`updated_at` AS `updated_at`, `p`.`urgente` AS `urgente`, `p`.`deletado` AS `deletado`, `p`.`tag_custom` AS `tag_custom`, coalesce(sum(`v`.`valor`),0) AS `total_valores` FROM (`protocolos` `p` left join `protocolos_valores` `v` on(`v`.`protocolo_id` = `p`.`id`)) GROUP BY `p`.`id` ;
 
 --
 -- Índices para tabelas despejadas

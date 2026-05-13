@@ -1,220 +1,402 @@
 <?php
 require __DIR__ . '/config/db.php';
+require __DIR__ . '/components/app-layout.php';
 
-$basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
-$baseHref = ($basePath === '') ? '/' : $basePath . '/';
+$atoColors = require __DIR__ . '/config/ato-cores.php';
 
-$board = [
-    'PARA_DISTRIBUIR' => [],
-    'EM_ANDAMENTO'   => [],
-    'PARA_CORRECAO'  => [],
-    'LAVRADOS'       => [],
-    'ARQUIVADOS'     => []
-];
-
-$atosRaw = $pdo->query("
-    SELECT DISTINCT ato
-    FROM protocolos
-    WHERE deletado = 0 AND ato IS NOT NULL AND ato <> ''
-")->fetchAll(PDO::FETCH_COLUMN);
+$atosRaw = $pdo->query("\n    SELECT DISTINCT ato\n    FROM protocolos\n    WHERE deletado = 0 AND ato IS NOT NULL AND ato <> ''\n")->fetchAll(PDO::FETCH_COLUMN);
 
 $atosMap = [];
 foreach ($atosRaw as $ato) {
-    $key = mb_strtolower(trim($ato), 'UTF-8');
+    $key = mb_strtolower(trim((string) $ato), 'UTF-8');
     if ($key === '') continue;
     if (!isset($atosMap[$key])) {
-        $atosMap[$key] = $ato;
+        $atosMap[$key] = (string) $ato;
     }
 }
 ksort($atosMap, SORT_NATURAL | SORT_FLAG_CASE);
 
-$digitadores = $pdo->query("
-    SELECT DISTINCT digitador
-    FROM protocolos
-    WHERE deletado = 0 AND digitador IS NOT NULL AND digitador <> ''
-    ORDER BY digitador
-")->fetchAll(PDO::FETCH_COLUMN);
+$digitadores = $pdo->query("\n    SELECT DISTINCT digitador\n    FROM protocolos\n    WHERE deletado = 0 AND digitador IS NOT NULL AND digitador <> ''\n    ORDER BY digitador\n")->fetchAll(PDO::FETCH_COLUMN);
 
-$tagsRaw = $pdo->query("
-    SELECT DISTINCT tag_custom
-    FROM protocolos
-    WHERE deletado = 0 AND tag_custom IS NOT NULL AND tag_custom <> ''
-")->fetchAll(PDO::FETCH_COLUMN);
+$tagsRaw = $pdo->query("\n    SELECT DISTINCT tag_custom\n    FROM protocolos\n    WHERE deletado = 0 AND tag_custom IS NOT NULL AND tag_custom <> ''\n")->fetchAll(PDO::FETCH_COLUMN);
 
 $tagsMap = [];
 foreach ($tagsRaw as $tag) {
-    $key = mb_strtolower(trim($tag), 'UTF-8');
+    $key = mb_strtolower(trim((string) $tag), 'UTF-8');
     if ($key === '') continue;
     if (!isset($tagsMap[$key])) {
-        $tagsMap[$key] = $tag;
+        $tagsMap[$key] = (string) $tag;
     }
 }
 ksort($tagsMap, SORT_NATURAL | SORT_FLAG_CASE);
+
+$metadata = [
+    'atos' => array_values($atosMap),
+    'atoColors' => $atoColors,
+    'digitadores' => array_values(array_filter(array_map('strval', $digitadores))),
+    'tags' => array_values($tagsMap),
+    'available' => true,
+    'error' => '',
+];
+
+$scriptPath = 'apps/protocolos/index.js';
+$scriptVersion = protocolos_asset_version($scriptPath);
+
+protocolos_render_head(
+    'Protocolos Notariais',
+    'Board operacional para acompanhar, editar e movimentar fichas.',
+    $scriptPath . '?v=' . $scriptVersion,
+    [
+        'body_class' => 'apollo-body',
+        'extra_head' => [
+            '<script>window.APOLLO_PROTOCOLS_METADATA = ' . json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>',
+            '<script type="module" src="assets/js/calendar-alerts.js?v=' . protocolos_asset_version('assets/js/calendar-alerts.js') . '"></script>',
+        ],
+    ]
+);
+
+protocolos_render_app_start(
+    'index.php',
+    'Protocolos Notariais',
+    'Protocolos',
+    'Board operacional para acompanhar, editar e movimentar fichas.',
+    [],
+    ['page_class' => 'page-protocols', 'hide_header' => true]
+);
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Protocolos Notariais</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <section class="protocols-native-shell">
+        <section class="surface protocols-control-panel">
+            <div class="protocols-filter-line">
+                <label class="field protocols-search-field">
+                    <span class="protocols-field-label">
+                        <span class="protocols-filter-icon" data-protocol-icon="search" aria-hidden="true"></span>
+                        Buscar protocolos
+                    </span>
+                    <input id="protocols-search" type="search" placeholder="Ficha, apresentante, partes, digitador ou ato">
+                </label>
+                <label class="field">
+                    <span class="protocols-field-label">
+                        <span class="protocols-filter-icon" data-protocol-icon="stamp" aria-hidden="true"></span>
+                        Ato
+                    </span>
+                    <select id="protocols-filter-ato">
+                        <option value="">Todos</option>
+                        <?php foreach ($metadata['atos'] as $ato): ?>
+                            <option value="<?= htmlspecialchars(mb_strtolower($ato, 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($ato, ENT_QUOTES, 'UTF-8') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
 
-    <base href="<?= htmlspecialchars($baseHref) ?>">
+                <label class="field">
+                    <span class="protocols-field-label">
+                        <span class="protocols-filter-icon" data-protocol-icon="keyboard" aria-hidden="true"></span>
+                        Digitador
+                    </span>
+                    <select id="protocols-filter-digitador">
+                        <option value="">Todos</option>
+                        <?php foreach ($metadata['digitadores'] as $digitador): ?>
+                            <option value="<?= htmlspecialchars($digitador, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($digitador, ENT_QUOTES, 'UTF-8') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
 
-    <link rel="icon" href="assets/img/logo.png">
-    <link rel="stylesheet" href="assets/css/style.css">
+                <label class="field">
+                    <span class="protocols-field-label">
+                        <span class="protocols-filter-icon" data-protocol-icon="tag" aria-hidden="true"></span>
+                        Etiqueta
+                    </span>
+                    <select id="protocols-filter-tag">
+                        <option value="">Todas</option>
+                        <?php foreach ($metadata['tags'] as $tag): ?>
+                            <option value="<?= htmlspecialchars(mb_strtolower($tag, 'UTF-8'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($tag, ENT_QUOTES, 'UTF-8') ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
 
-    <script>window.BASE_URL = <?= json_encode($baseHref) ?>;</script>
-    <script type="module" src="assets/js/board.js"></script>
-    <script type="module" src="assets/js/modal.js"></script>
-    <script type="module" src="assets/js/autosave.js"></script>
-    <script type="module" src="assets/js/search.js"></script>
-    <script type="module" src="assets/js/tags.js"></script>
-</head>
+                <label class="protocols-toggle protocols-toggle-urgent">
+                    <input id="protocols-filter-urgente" type="checkbox">
+                    <span class="protocols-filter-icon" data-protocol-icon="alert" aria-hidden="true"></span>
+                    <span>Urgentes</span>
+                </label>
 
-<body>
-
-<header class="topbar">
-    <h1>Protocolos</h1>
-    <div class="search-wrapper">
-        <input
-            type="search"
-            id="search"
-            placeholder="Buscar por ficha, apresentante, outorgante, outorgado, digitador ou ato…"
-            autocomplete="off"
-        >
-    </div>
-    <div class="filters">
-        <select id="filter-ato">
-            <option value="">Todos os atos</option>
-            <?php foreach ($atosMap as $key => $ato): ?>
-                <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($ato) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select id="filter-urgente">
-            <option value="">Todos</option>
-            <option value="1">Somente urgentes</option>
-        </select>
-        <select id="filter-tag">
-            <option value="">Todas as tags</option>
-            <?php foreach ($tagsMap as $key => $tag): ?>
-                <option value="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($tag) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select id="filter-digitador">
-            <option value="">Todos os digitadores</option>
-            <?php foreach ($digitadores as $dig): ?>
-                <option value="<?= htmlspecialchars($dig) ?>"><?= htmlspecialchars($dig) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-    <button id="toggle-archived" class="btn-toggle-archived" aria-expanded="false" type="button">
-        Mostrar arquivados
-    </button>
-    <div class="topbar-tools-menu">
-        <button
-            id="tools-menu-toggle"
-            class="btn-secondary topbar-link topbar-icon-link"
-            type="button"
-            aria-label="Abrir menu de ferramentas"
-            title="Ferramentas"
-            aria-haspopup="true"
-            aria-expanded="false"
-        >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M4 7a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5A1 1 0 0 1 4 7Zm0 5a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1Zm1 4a1 1 0 1 0 0 2h14a1 1 0 1 0 0-2H5Z" fill="currentColor"/>
-            </svg>
-        </button>
-        <div id="tools-menu-dropdown" class="tools-menu-dropdown hidden" role="menu" aria-label="Ferramentas rápidas">
-            <a class="tools-menu-item" href="gerador-qrcode.php" role="menuitem">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M3 3h8v8H3V3Zm2 2v4h4V5H5Zm8-2h8v8h-8V3Zm2 2v4h4V5h-4ZM3 13h8v8H3v-8Zm2 2v4h4v-4H5Zm10-2h2v2h-2v-2Zm-2 2h2v2h-2v-2Zm4 0h4v2h-4v-2Zm-2 2h2v2h-2v-2Zm4 0h2v4h-2v-4Zm-6 2h4v2h-4v-2Z" fill="currentColor"/>
-                </svg>
-                <span>Gerador de QR Code</span>
-            </a>
-            <a class="tools-menu-item" href="certidoes.php" role="menuitem">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M7 3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9.41a2 2 0 0 0-.59-1.41l-3.41-3.41A2 2 0 0 0 13.59 4H7Zm6 1.5V8a1 1 0 0 0 1 1h3.5V19a.5.5 0 0 1-.5.5H7a.5.5 0 0 1-.5-.5V5A.5.5 0 0 1 7 4.5h6ZM8.75 12.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75Zm0 3a.75.75 0 0 1 .75-.75h5.75a.75.75 0 0 1 0 1.5H9.5a.75.75 0 0 1-.75-.75Z" fill="currentColor"/>
-                </svg>
-                <span>Leitor de Certidões</span>
-            </a>
-            <a class="tools-menu-item" href="calendario.php" role="menuitem">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H6V3a1 1 0 0 1 1-1Zm12.5 8h-15v8.5a.5.5 0 0 0 .5.5h14a.5.5 0 0 0 .5-.5V10ZM5 6a.5.5 0 0 0-.5.5V8h15V6.5A.5.5 0 0 0 19 6H5Zm2 7h3v3H7v-3Zm5 0h3v3h-3v-3Z" fill="currentColor"/>
-                </svg>
-                <span>Consultar Agenda</span>
-            </a>
-            <div class="tools-menu-divider" role="separator"></div>
-            <section class="tools-density-panel" aria-label="Tamanho e densidade da interface">
-                <div class="tools-density-head">
-                    <span>Interface</span>
-                    <strong id="ui-density-label">Padrão</strong>
-                </div>
-                <div class="tools-density-controls" role="group" aria-label="Ajustar tamanho da interface">
-                    <button id="ui-density-minus" class="tools-density-btn" type="button" aria-label="Diminuir interface">
-                        <span>A−</span>
-                    </button>
-                    <button id="ui-density-reset" class="tools-density-reset" type="button" aria-label="Restaurar interface padrão">
-                        100%
-                    </button>
-                    <button id="ui-density-plus" class="tools-density-btn is-plus" type="button" aria-label="Aumentar interface">
-                        <span>A+</span>
-                    </button>
-                </div>
-            </section>
-        </div>
-    </div>
-    <div id="active-filters" class="filter-chips"></div>
-</header>
-
-<main>
-    <?php include __DIR__ . '/components/board.php'; ?>
-</main>
-
-<?php include __DIR__ . '/components/modal.php'; ?>
-
-<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-<div id="dashboard-calendar-modal" class="dashboard-calendar-modal hidden" aria-hidden="true">
-    <div id="dashboard-calendar-overlay" class="dashboard-calendar-overlay"></div>
-    <section class="dashboard-calendar-dialog" role="dialog" aria-modal="true" aria-labelledby="dashboard-calendar-title">
-        <div class="dashboard-calendar-head">
-            <div>
-                <span class="dashboard-calendar-kicker">Agenda de hoje</span>
-                <h2 id="dashboard-calendar-title">Novo compromisso</h2>
+                <label class="protocols-toggle">
+                    <input id="protocols-toggle-archived" type="checkbox">
+                    <span class="protocols-filter-icon" data-protocol-icon="archive" aria-hidden="true"></span>
+                    <span>Mostrar arquivados</span>
+                </label>
             </div>
-            <button id="dashboard-calendar-close" class="dashboard-calendar-close" type="button" aria-label="Fechar aviso">×</button>
-        </div>
-        <p id="dashboard-calendar-summary" class="dashboard-calendar-summary"></p>
-        <div id="dashboard-calendar-events" class="dashboard-calendar-events"></div>
-        <div class="dashboard-calendar-actions">
-            <a class="btn-secondary" href="calendario.php">Abrir agenda</a>
-            <button id="dashboard-calendar-ok" class="btn-primary" type="button">Entendi</button>
-        </div>
-    </section>
-</div>
 
-<!-- Template reutilizado pelo JS para criar cards (fonte unica de estrutura) -->
-<template id="card-template">
-    <div class="card card-appear" draggable="true">
-        <div class="card-tag"></div>
-        <div class="card-body">
-            <div class="card-ficha"></div>
-            <div class="card-apresentante"><span class="card-icon">👤</span><span class="card-text"></span></div>
-            <div class="card-digitador"><span class="card-icon">⌨️</span><span class="card-text"></span></div>
-            <div class="card-outorgantes"><span class="card-icon">📝</span><span class="card-text"></span></div>
-            <div class="card-outorgados"><span class="card-icon">🧾</span><span class="card-text"></span></div>
-            <div class="card-data"><span class="card-icon">📅</span><span class="card-text"></span></div>
-        </div>
-        <div class="card-footer">
-            <div class="card-actions"></div>
-            <div class="card-valores"></div>
-            <div class="card-handle" title="Arrastar">⋮⋮</div>
+            <div class="protocols-active-filters" id="protocols-active-filters" aria-live="polite"></div>
+        </section>
+
+        <section class="protocols-board" id="protocols-board" aria-live="polite"></section>
+    </section>
+
+    <dialog class="protocols-dialog" id="protocols-dialog">
+        <form method="dialog" class="protocols-dialog-shell">
+            <header class="protocols-dialog-head">
+                <div>
+                    <span class="eyebrow">Protocolo</span>
+                    <h2 id="protocols-modal-title">Ficha</h2>
+                    <p id="protocols-modal-subtitle">Autosave ativo nos campos editáveis.</p>
+                </div>
+                <div class="protocols-dialog-actions">
+                    <button class="button button-secondary" type="button" id="protocols-print">Gerar PDF</button>
+                    <button class="chat-icon-button" type="button" id="protocols-close" aria-label="Fechar">×</button>
+                </div>
+            </header>
+
+            <div class="protocols-modal-notice is-hidden" id="protocols-modal-notice" role="status" aria-live="polite"></div>
+
+            <section class="protocols-modal-overview">
+                <article class="protocols-overview-card is-ficha">
+                    <div class="protocols-overview-card-top">
+                        <span class="protocols-overview-icon" data-protocol-icon="file" aria-hidden="true"></span>
+                        <span class="eyebrow">Ficha</span>
+                    </div>
+                    <strong id="protocols-overview-ficha">-</strong>
+                </article>
+                <article class="protocols-overview-card is-ato">
+                    <div class="protocols-overview-card-top">
+                        <span class="protocols-overview-icon" data-protocol-icon="stamp" aria-hidden="true"></span>
+                        <span class="eyebrow">Ato</span>
+                    </div>
+                    <strong id="protocols-overview-ato">-</strong>
+                </article>
+                <article class="protocols-overview-card is-digitador">
+                    <div class="protocols-overview-card-top">
+                        <span class="protocols-overview-icon" data-protocol-icon="keyboard" aria-hidden="true"></span>
+                        <span class="eyebrow">Digitador</span>
+                    </div>
+                    <strong id="protocols-overview-digitador">-</strong>
+                </article>
+                <article class="protocols-overview-card is-data">
+                    <div class="protocols-overview-card-top">
+                        <span class="protocols-overview-icon" data-protocol-icon="calendar" aria-hidden="true"></span>
+                        <span class="eyebrow">Data</span>
+                    </div>
+                    <strong id="protocols-overview-data">-</strong>
+                </article>
+            </section>
+
+            <div class="protocols-dialog-body">
+                <section class="surface surface-nested protocols-modal-section protocols-data-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="file" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Dados</span>
+                                <h2>Identificação</h2>
+                            </div>
+                        </div>
+                        <label class="protocols-urgent-toggle">
+                            <input type="checkbox" data-protocol-field="urgente" value="1">
+                            <span>Urgente</span>
+                        </label>
+                    </div>
+
+                    <div class="compact-form-grid compact-form-grid-3">
+                        <label class="field">
+                            <span>Ficha</span>
+                            <input type="number" data-protocol-field="ficha" min="0" max="9999999">
+                        </label>
+                        <label class="field field-span-2">
+                            <span>Ato</span>
+                            <input type="text" data-protocol-field="ato" list="protocols-ato-options">
+                        </label>
+                        <label class="field">
+                            <span>Digitador</span>
+                            <input type="text" data-protocol-field="digitador" list="protocols-digitador-options">
+                        </label>
+                        <label class="field">
+                            <span>Data</span>
+                            <input type="date" data-protocol-field="data_apresentacao">
+                        </label>
+                        <label class="field">
+                            <span>Contato</span>
+                            <input type="text" data-protocol-field="contato">
+                        </label>
+                        <label class="field field-span-2">
+                            <span>Apresentante</span>
+                            <input type="text" data-protocol-field="apresentante">
+                        </label>
+                        <label class="field">
+                            <span>Etiqueta</span>
+                            <input type="text" data-protocol-field="tag_custom" list="protocols-tag-options">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section protocols-timeline-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="note" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Andamentos</span>
+                                <h2>Histórico</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="protocols-add-note">
+                        <textarea id="protocols-new-note" rows="2" placeholder="Registrar novo andamento"></textarea>
+                        <button class="button button-primary protocols-add-note-action" type="button" id="protocols-add-note" aria-label="Adicionar andamento" title="Adicionar andamento">
+                            <span data-protocol-icon="plus" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <div class="protocols-timeline-frame" id="protocols-notes-frame">
+                        <div class="protocols-timeline" id="protocols-notes"></div>
+                        <div class="protocols-timeline-hint is-hidden" id="protocols-notes-hint" aria-hidden="true">Role para ver mais andamentos</div>
+                    </div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="user" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Partes</span>
+                                <h2>Outorgantes e outorgados</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="compact-form-grid compact-form-grid-2">
+                        <label class="field">
+                            <span>Outorgantes</span>
+                            <textarea data-protocol-field="outorgantes" rows="5"></textarea>
+                        </label>
+                        <label class="field">
+                            <span>Outorgados</span>
+                            <textarea data-protocol-field="outorgados" rows="5"></textarea>
+                        </label>
+                    </div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="map" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Imóveis</span>
+                                <h2>Matrículas</h2>
+                            </div>
+                        </div>
+                        <button class="button button-secondary" type="button" id="protocols-add-property">Adicionar</button>
+                    </div>
+                    <div class="protocols-sublist" id="protocols-properties"></div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="money" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Valores</span>
+                                <h2>Custas e adicionais</h2>
+                            </div>
+                        </div>
+                        <button class="button button-secondary" type="button" id="protocols-add-value">Adicionar</button>
+                    </div>
+                    <label class="field">
+                        <span>Valor do ato</span>
+                        <input type="text" data-protocol-field="valor_ato" inputmode="decimal" placeholder="0,00">
+                    </label>
+                    <div class="protocols-sublist" id="protocols-values"></div>
+                    <div class="protocols-total" id="protocols-values-total">Total: R$ 0,00</div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section protocols-documents-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="archive" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Documentos</span>
+                                <h2>Pasta vinculada</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="field">
+                        <span>Caminho da pasta</span>
+                        <input type="text" data-protocol-field="pasta_documentos" id="protocols-documents-path" placeholder="\\Srv01\d\Disco F\A FAZER - ESCRITURAS\...">
+                    </label>
+                    <div class="surface-actions protocols-documents-actions">
+                        <button class="button button-secondary" type="button" id="protocols-copy-documents-path">Copiar caminho</button>
+                        <button class="button button-secondary" type="button" id="protocols-open-documents-path">Abrir pasta</button>
+                        <button class="button button-primary" type="button" id="protocols-refresh-documents">Atualizar lista</button>
+                    </div>
+                    <div class="protocols-documents-feedback" id="protocols-documents-feedback">Informe o caminho da pasta para listar os documentos.</div>
+                    <div class="protocols-documents-summary" id="protocols-documents-summary"></div>
+                    <div class="protocols-documents-list" id="protocols-documents-list"></div>
+                </section>
+
+                <section class="surface surface-nested protocols-modal-section protocols-notes-section protocols-observations-section">
+                    <div class="surface-head surface-head-compact">
+                        <div class="protocol-section-heading">
+                            <span class="protocol-section-icon" data-protocol-icon="note" aria-hidden="true"></span>
+                            <div>
+                                <span class="eyebrow">Observações</span>
+                                <h2>Anotações internas</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="field protocols-observations-field">
+                        <textarea data-protocol-field="observacoes" rows="9"></textarea>
+                    </label>
+                </section>
+            </div>
+        </form>
+    </dialog>
+
+    <datalist id="protocols-ato-options">
+        <?php foreach ($metadata['atos'] as $ato): ?>
+            <option value="<?= htmlspecialchars($ato, ENT_QUOTES, 'UTF-8') ?>"></option>
+        <?php endforeach; ?>
+    </datalist>
+    <datalist id="protocols-digitador-options">
+        <?php foreach ($metadata['digitadores'] as $digitador): ?>
+            <option value="<?= htmlspecialchars($digitador, ENT_QUOTES, 'UTF-8') ?>"></option>
+        <?php endforeach; ?>
+    </datalist>
+    <datalist id="protocols-tag-options">
+        <?php foreach ($metadata['tags'] as $tag): ?>
+            <option value="<?= htmlspecialchars($tag, ENT_QUOTES, 'UTF-8') ?>"></option>
+        <?php endforeach; ?>
+    </datalist>
+
+    <div id="protocols-delete-modal" class="protocol-modal hidden" aria-hidden="true">
+        <div id="protocols-delete-overlay" class="protocol-modal-overlay"></div>
+        <div class="protocol-modal-panel protocols-confirm-panel" role="dialog" aria-modal="true" aria-labelledby="protocols-delete-title">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow">Confirmação</span>
+                    <h2 id="protocols-delete-title">Excluir protocolo?</h2>
+                </div>
+                <button id="protocols-delete-close" class="chat-icon-button" type="button" aria-label="Fechar">×</button>
+            </div>
+            <p class="protocol-tool-note">Esta ação marca o protocolo como excluído. Os dados não serão apagados fisicamente.</p>
+            <div class="protocols-confirm-summary" id="protocols-delete-summary">Selecione um protocolo para excluir.</div>
+            <div class="surface-actions">
+                <button class="button button-secondary" id="protocols-delete-cancel" type="button">Cancelar</button>
+                <button class="button button-primary danger" id="protocols-delete-confirm" type="button">Excluir protocolo</button>
+            </div>
         </div>
     </div>
-</template>
 
-<script type="module" src="assets/js/tools-menu.js"></script>
-<script type="module" src="assets/js/calendar-alerts.js"></script>
-
-</body>
-</html>
+    <div id="dashboard-calendar-modal" class="protocol-modal hidden" aria-hidden="true">
+        <div id="dashboard-calendar-overlay" class="protocol-modal-overlay"></div>
+        <div class="protocol-modal-panel protocols-confirm-panel" role="dialog" aria-modal="true" aria-labelledby="dashboard-calendar-title">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow">Agenda de hoje</span>
+                    <h2 id="dashboard-calendar-title">Novo compromisso</h2>
+                </div>
+                <button id="dashboard-calendar-close" class="chat-icon-button" type="button" aria-label="Fechar aviso">×</button>
+            </div>
+            <p id="dashboard-calendar-summary" class="protocol-tool-note"></p>
+            <div id="dashboard-calendar-events" class="dashboard-calendar-events"></div>
+            <div class="surface-actions">
+                <a class="button button-secondary" href="calendario.php">Abrir agenda</a>
+                <button id="dashboard-calendar-ok" class="button button-primary" type="button">Entendi</button>
+            </div>
+        </div>
+    </div>
+<?php protocolos_render_app_end(); ?>

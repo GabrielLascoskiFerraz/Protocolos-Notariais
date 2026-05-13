@@ -19,6 +19,10 @@ const digitadorSelect = document.getElementById('digitador-select');
 const digitadorOutrosWrapper = document.getElementById('digitador-outros');
 const digitadorInput = document.getElementById('digitador-input');
 const btnFecharModal = document.getElementById('modal-close');
+const pastaDocumentosInput = document.getElementById('pasta-documentos-input');
+const documentosFeedback = document.getElementById('documentos-feedback');
+const documentosResumo = document.getElementById('documentos-resumo');
+const listaDocumentos = document.getElementById('lista-documentos');
 
 if (atoSelect && atoOutrosWrapper && atoOutrosInput) {
     atoSelect.addEventListener('change', () => {
@@ -84,6 +88,11 @@ if (btnFecharModal) {
     btnFecharModal.addEventListener('click', fecharModal);
 }
 
+pastaDocumentosInput?.addEventListener('input', () => {
+    resetDocumentosLista();
+    setDocumentosFeedback('Caminho alterado. Clique em “Atualizar lista” para consultar a pasta.', 'empty');
+});
+
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!modal || modal.classList.contains('hidden')) return;
@@ -109,6 +118,7 @@ export function abrirModal(id) {
     carregarImoveis(id);
     carregarValores(id);
     carregarAndamentos(id);
+    carregarDocumentos(id);
 }
 
 /* =========================================================
@@ -316,6 +326,203 @@ function carregarImoveis(id) {
             });
         })
         .catch(err => console.error(err));
+}
+
+/* =========================================================
+   DOCUMENTOS VINCULADOS
+   ======================================================= */
+
+function setDocumentosFeedback(message, state = '') {
+    if (!documentosFeedback) return;
+    documentosFeedback.textContent = message;
+    documentosFeedback.dataset.state = state;
+}
+
+function resetDocumentosLista() {
+    if (documentosResumo) {
+        documentosResumo.classList.add('hidden');
+        documentosResumo.innerHTML = '';
+    }
+
+    if (listaDocumentos) {
+        listaDocumentos.innerHTML = '';
+    }
+}
+
+function formatarDataArquivo(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function renderDocumentosResumo(summary) {
+    if (!documentosResumo || !summary) return;
+
+    const truncated = summary.truncated
+        ? ` Exibindo os primeiros ${summary.max_items} itens.`
+        : '';
+
+    documentosResumo.classList.remove('hidden');
+    documentosResumo.innerHTML = `
+        <span>${summary.files} arquivo(s)</span>
+        <span>${summary.folders} pasta(s)</span>
+        <span class="${summary.problematic ? 'documentos-warn' : ''}">${summary.problematic} atenção</span>
+        ${truncated ? `<small>${truncated}</small>` : ''}
+    `;
+}
+
+function renderDocumentoItem(item) {
+    const row = document.createElement('div');
+    row.className = `documento-item ${item.problem ? 'is-problem' : ''}`;
+
+    const icon = document.createElement('div');
+    icon.className = 'documento-icon';
+    icon.textContent = item.type === 'folder' ? 'Pasta' : (item.extension || 'Arquivo');
+
+    const main = document.createElement('div');
+    main.className = 'documento-main';
+
+    const name = document.createElement('strong');
+    name.textContent = item.name || 'Sem nome';
+    main.appendChild(name);
+
+    const meta = document.createElement('span');
+    meta.textContent = `${item.size_human || '—'} • ${formatarDataArquivo(item.modified)}`;
+    main.appendChild(meta);
+
+    if (item.problem && item.problem_reason) {
+        const warn = document.createElement('em');
+        warn.textContent = item.problem_reason;
+        main.appendChild(warn);
+    }
+
+    row.append(icon, main);
+    return row;
+}
+
+function carregarDocumentos(id = getProtocoloAtual()) {
+    if (!id || !listaDocumentos) return;
+
+    resetDocumentosLista();
+    setDocumentosFeedback('Carregando documentos...', 'loading');
+
+    fetch(apiUrl(`api/documentos.php?action=list&protocolo_id=${id}`))
+        .then(res => res.json().then(json => ({ ok: res.ok, json })))
+        .then(({ ok, json }) => {
+            if (!ok || json.success === false) {
+                setDocumentosFeedback(json.error || 'Não foi possível listar os documentos.', json.code === 'EMPTY_PATH' ? 'empty' : 'error');
+                return;
+            }
+
+            const items = Array.isArray(json.items) ? json.items : [];
+            renderDocumentosResumo(json.summary);
+
+            if (!items.length) {
+                setDocumentosFeedback('Pasta acessível, mas nenhum arquivo foi encontrado.', 'empty');
+                return;
+            }
+
+            setDocumentosFeedback(`Pasta acessível: ${json.path}`, 'success');
+            const fragment = document.createDocumentFragment();
+            items.forEach(item => fragment.appendChild(renderDocumentoItem(item)));
+            listaDocumentos.appendChild(fragment);
+        })
+        .catch(error => {
+            console.error(error);
+            setDocumentosFeedback('Erro ao consultar a pasta de documentos.', 'error');
+        });
+}
+
+export function atualizarPastaDocumentos() {
+    if (!getProtocoloAtual() || !pastaDocumentosInput) return;
+
+    setDocumentosFeedback('Salvando caminho...', 'loading');
+    salvarCampo('pasta_documentos', pastaDocumentosInput.value.trim())
+        .then(json => {
+            if (!json?.success) {
+                setDocumentosFeedback(json?.error || 'Não foi possível salvar o caminho.', 'error');
+                return;
+            }
+
+            carregarDocumentos(getProtocoloAtual());
+        });
+}
+
+function pastaParaFileUrl(path) {
+    const value = String(path || '').trim();
+    if (!value) return '';
+
+    if (value.startsWith('\\\\')) {
+        return 'file://///' + value
+            .replace(/^\\\\/, '')
+            .split('\\')
+            .filter(Boolean)
+            .map(encodeURIComponent)
+            .join('/');
+    }
+
+    const normalized = value.replace(/\\/g, '/');
+    if (/^[A-Za-z]:\//.test(normalized)) {
+        const [drive, ...parts] = normalized.split('/');
+        return `file:///${drive}/${parts.map(encodeURIComponent).join('/')}`;
+    }
+
+    const encoded = normalized.split('/').map(encodeURIComponent).join('/');
+    return normalized.startsWith('/') ? `file://${encoded}` : `file:///${encoded}`;
+}
+
+export function copiarPastaDocumentos() {
+    const path = pastaDocumentosInput?.value.trim() || '';
+    if (!path) {
+        setDocumentosFeedback('Nenhum caminho informado para copiar.', 'empty');
+        return;
+    }
+
+    const fallbackCopy = () => {
+        const textarea = document.createElement('textarea');
+        textarea.value = path;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+    };
+
+    if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(path)
+            .then(() => setDocumentosFeedback('Caminho copiado.', 'success'))
+            .catch(() => {
+                fallbackCopy();
+                setDocumentosFeedback('Caminho copiado.', 'success');
+            });
+        return;
+    }
+
+    fallbackCopy();
+    setDocumentosFeedback('Caminho copiado.', 'success');
+}
+
+export function abrirPastaDocumentos() {
+    const path = pastaDocumentosInput?.value.trim() || '';
+    if (!path) {
+        setDocumentosFeedback('Nenhum caminho informado para abrir.', 'empty');
+        return;
+    }
+
+    const opened = window.open(pastaParaFileUrl(path), '_blank');
+    setDocumentosFeedback(
+        opened
+            ? 'Tentando abrir a pasta. Se o navegador bloquear, use “Copiar caminho” e cole no Explorador de Arquivos.'
+            : 'O navegador bloqueou a abertura da pasta. Use “Copiar caminho” e cole no Explorador de Arquivos.',
+        opened ? 'success' : 'error'
+    );
 }
 
 export function adicionarImovel() {
@@ -1157,6 +1364,9 @@ window.removerAndamento = removerAndamento;
 window.adicionarImovel = adicionarImovel;
 window.atualizarImovel = atualizarImovel;
 window.removerImovel = removerImovel;
+window.atualizarPastaDocumentos = atualizarPastaDocumentos;
+window.copiarPastaDocumentos = copiarPastaDocumentos;
+window.abrirPastaDocumentos = abrirPastaDocumentos;
 window.adicionarValor = adicionarValor;
 window.atualizarValor = atualizarValor;
 window.removerValor = removerValor;

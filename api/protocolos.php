@@ -1,7 +1,10 @@
 <?php
 require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../config/schema.php';
 
 header('Content-Type: application/json; charset=utf-8');
+
+ensureProtocolosDocumentosSchema($pdo);
 
 $action = $_REQUEST['action'] ?? null;
 
@@ -34,6 +37,86 @@ try {
 
     function serverNow(PDO $pdo) {
         return $pdo->query("SELECT NOW()")->fetchColumn();
+    }
+
+    function normalizarCaminhoDocumentos(string $path): string {
+        $path = trim(str_replace(["\0", "\r", "\n"], '', $path));
+        if ($path === '') return '';
+
+        if (str_starts_with($path, '/') && !str_starts_with($path, '//')) {
+            $path = preg_replace('#/+#', '/', $path);
+            return rtrim((string)$path, "/ \t");
+        }
+
+        $path = str_replace('/', '\\', $path);
+        if (str_starts_with($path, '\\\\')) {
+            $path = '\\\\' . preg_replace('/\\\\+/', '\\', substr($path, 2));
+        } else {
+            $path = preg_replace('/\\\\+/', '\\', $path);
+        }
+
+        return rtrim((string)$path, "\\ \t");
+    }
+
+    function caminhosBaseDocumentos(array $config): array {
+        $paths = $config['allowed_base_paths'] ?? [$config['base_path'] ?? ''];
+        if (is_string($paths)) {
+            $paths = [$paths];
+        }
+
+        $normalized = [];
+        foreach ($paths as $path) {
+            $path = normalizarCaminhoDocumentos((string)$path);
+            if ($path !== '') {
+                $normalized[] = $path;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    function separadorCaminhoDocumentos(string $basePath): string {
+        return str_contains($basePath, '/') && !str_contains($basePath, '\\') ? '/' : '\\';
+    }
+
+    function caminhoDocumentosTemTraversal(string $path): bool {
+        $segments = preg_split('/[\\\\\/]+/', $path) ?: [];
+        return in_array('..', $segments, true);
+    }
+
+    function validarCaminhoDocumentos(string $path): string {
+        $path = normalizarCaminhoDocumentos($path);
+        if ($path === '') return '';
+
+        $config = require __DIR__ . '/../config/documentos.php';
+        $basePaths = caminhosBaseDocumentos($config);
+
+        if (caminhoDocumentosTemTraversal($path)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Caminho da pasta de documentos inválido']);
+            exit;
+        }
+
+        $pathLower = mb_strtolower($path, 'UTF-8');
+        foreach ($basePaths as $basePath) {
+            $basePath = normalizarCaminhoDocumentos($basePath);
+            if ($basePath === '') {
+                continue;
+            }
+
+            $separator = separadorCaminhoDocumentos($basePath);
+            $baseLower = mb_strtolower($basePath, 'UTF-8');
+            if ($pathLower === $baseLower || str_starts_with($pathLower, $baseLower . $separator)) {
+                return $path;
+            }
+        }
+
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'A pasta de documentos deve estar dentro de uma das raízes configuradas',
+            'base_paths' => $basePaths
+        ]);
+        exit;
     }
 
     /* =========================================================
@@ -284,6 +367,7 @@ try {
             'area',
             'valor_ato',
             'observacoes',
+            'pasta_documentos',
             'urgente',
             'tag_custom'
         ];
@@ -305,6 +389,7 @@ try {
             'matricula'        => 200,
             'area'             => 200,
             'observacoes'      => 5000,
+            'pasta_documentos'  => 1024,
             'tag_custom'       => 50,
             'valor_ato'        => 20,
         ];
@@ -338,6 +423,10 @@ try {
                 echo json_encode(['error' => 'Valor do ato inválido']);
                 exit;
             }
+        }
+
+        if ($field === 'pasta_documentos') {
+            $value = validarCaminhoDocumentos((string)$value);
         }
 
         // Data: validar formato

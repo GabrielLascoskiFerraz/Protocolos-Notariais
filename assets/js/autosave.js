@@ -52,7 +52,7 @@ document.addEventListener('input', function (e) {
    ======================================================= */
 
 export function salvarCampo(field, value) {
-    fetch(apiUrl('api/protocolos.php?action=update'), {
+    return fetch(apiUrl('api/protocolos.php?action=update'), {
         method: 'POST',
         body: new URLSearchParams({
             id: getProtocoloAtual(),
@@ -70,8 +70,13 @@ export function salvarCampo(field, value) {
         if (typeof window.atualizarCard === 'function') {
             window.atualizarCard(getProtocoloAtual());
         }
+
+        return json;
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+        console.error(err);
+        return { success: false, error: err?.message || 'Erro de rede' };
+    });
 }
 
 window.salvarCampo = salvarCampo;

@@ -234,6 +234,36 @@
                     </div>
                 </section>
 
+                <!-- DOCUMENTOS -->
+                <section class="modal-section documentos-section">
+                    <h3>Pasta de documentos</h3>
+
+                    <div class="form-group">
+                        <label>Caminho da pasta na rede</label>
+                        <input
+                            type="text"
+                            id="pasta-documentos-input"
+                            data-field="pasta_documentos"
+                            maxlength="1024"
+                            placeholder="\\Srv01\d\Disco F\A FAZER - ESCRITURAS\... ou /Users/gabriel/Downloads"
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="documentos-actions">
+                        <button class="btn-secondary" type="button" onclick="copiarPastaDocumentos()">Copiar caminho</button>
+                        <button class="btn-secondary" type="button" onclick="abrirPastaDocumentos()">Abrir pasta</button>
+                        <button class="btn-primary" type="button" onclick="atualizarPastaDocumentos()">Atualizar lista</button>
+                    </div>
+
+                    <div id="documentos-feedback" class="documentos-feedback">
+                        Informe o caminho da pasta para listar os documentos.
+                    </div>
+
+                    <div id="documentos-resumo" class="documentos-resumo hidden"></div>
+                    <div id="lista-documentos" class="documentos-lista"></div>
+                </section>
+
             </div>
 
             <div class="modal-col">
