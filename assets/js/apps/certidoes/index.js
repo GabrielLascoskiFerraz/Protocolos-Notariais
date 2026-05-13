@@ -3,6 +3,7 @@ import {
     buildCertificateAlerts,
     buildCertificateWarnings,
     buildCertificatesOutput,
+    buildCertificatesOutputHighlights,
     getStatusBadgeClass,
     getStatusLabel,
     getValidityBadgeClass,
@@ -15,6 +16,7 @@ const fileInput = document.getElementById("cert-file-input");
 const dropzone = document.getElementById("cert-dropzone");
 const resultsEl = document.getElementById("cert-results");
 const outputEl = document.getElementById("cert-output");
+const outputHighlightEl = document.getElementById("cert-output-highlight");
 const copyBtn = document.getElementById("cert-copy");
 const clearBtn = document.getElementById("cert-clear");
 const warningBox = document.getElementById("cert-warning");
@@ -71,6 +73,26 @@ function certMeta(icon, label, value) {
             </div>
         </div>
     `;
+}
+
+function renderOutputHighlights(value = outputEl?.value || "") {
+    if (!outputHighlightEl) return;
+    const highlights = buildCertificatesOutputHighlights(parsedDocs).filter((item) => item.text);
+    let cursor = 0;
+    let html = "";
+
+    highlights.forEach((item) => {
+        const index = value.indexOf(item.text, cursor);
+        if (index === -1) return;
+        html += escapeHtml(value.slice(cursor, index));
+        html += `<mark class="cert-output-mark cert-output-mark-${escapeHtml(item.state)}">${escapeHtml(item.text)}</mark>`;
+        cursor = index + item.text.length;
+    });
+
+    html += escapeHtml(value.slice(cursor));
+    outputHighlightEl.innerHTML = html || "";
+    outputHighlightEl.scrollTop = outputEl?.scrollTop || 0;
+    outputHighlightEl.scrollLeft = outputEl?.scrollLeft || 0;
 }
 
 function certCardState(doc) {
@@ -177,8 +199,11 @@ function openAlertModal(items) {
         </div>
     `).join("");
     alertModal.classList.remove("is-closing");
-    alertModal.classList.add("is-opening");
     alertModal.classList.remove("hidden");
+    if (typeof alertModal.showModal === "function" && !alertModal.open) {
+        alertModal.showModal();
+    }
+    alertModal.classList.add("is-opening");
     alertModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
     window.setTimeout(() => alertModal.classList.remove("is-opening"), 260);
@@ -190,6 +215,9 @@ function closeAlertModal() {
     alertModal.classList.add("is-closing");
     window.clearTimeout(alertCloseTimer);
     alertCloseTimer = window.setTimeout(() => {
+        if (typeof alertModal.close === "function" && alertModal.open) {
+            alertModal.close();
+        }
         alertModal.classList.add("hidden");
         alertModal.classList.remove("is-closing");
         alertModal.setAttribute("aria-hidden", "true");
@@ -252,6 +280,7 @@ function regenerateOutput() {
     if (outputEl) {
         outputEl.value = buildCertificatesOutput(parsedDocs);
     }
+    renderOutputHighlights();
 }
 
 async function handleFiles(files) {
@@ -402,8 +431,18 @@ resultsEl?.addEventListener("click", (event) => {
 
 copyBtn?.addEventListener("click", () => void copyOutput());
 clearBtn?.addEventListener("click", clearAll);
+outputEl?.addEventListener("scroll", () => {
+    if (!outputHighlightEl) return;
+    outputHighlightEl.scrollTop = outputEl.scrollTop;
+    outputHighlightEl.scrollLeft = outputEl.scrollLeft;
+});
+outputEl?.addEventListener("input", () => renderOutputHighlights());
 alertCloseBtn?.addEventListener("click", closeAlertModal);
 alertOverlay?.addEventListener("click", closeAlertModal);
+alertModal?.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeAlertModal();
+});
 
 document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeAlertModal();

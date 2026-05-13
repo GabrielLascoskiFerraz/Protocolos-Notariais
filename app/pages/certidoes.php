@@ -69,7 +69,10 @@ protocolos_render_app_start(
                 </button>
             </div>
 
-            <textarea id="cert-output" class="protocol-cert-output" placeholder="O texto gerado aparecerá aqui."></textarea>
+            <div class="protocol-cert-output-wrap">
+                <div id="cert-output-highlight" class="protocol-cert-output-highlight" aria-hidden="true"></div>
+                <textarea id="cert-output" class="protocol-cert-output" placeholder="O texto gerado aparecerá aqui."></textarea>
+            </div>
         </section>
 
         <section class="surface protocol-tool-panel protocol-cert-results">
@@ -83,7 +86,7 @@ protocolos_render_app_start(
         </section>
     </section>
 
-    <div id="cert-alert-modal" class="protocol-modal hidden" aria-hidden="true">
+    <dialog id="cert-alert-modal" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
         <div id="cert-alert-overlay" class="protocol-modal-overlay"></div>
         <div class="protocol-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cert-alert-title">
             <div class="surface-head surface-head-compact">
@@ -96,5 +99,5 @@ protocolos_render_app_start(
             <p class="protocol-tool-note">Foram identificadas certidões positivas, vencidas ou não emitidas neste lote.</p>
             <div id="cert-alert-list" class="protocol-cert-alert-list"></div>
         </div>
-    </div>
+    </dialog>
 <?php protocolos_render_app_end(); ?>

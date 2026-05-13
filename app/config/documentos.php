@@ -15,13 +15,19 @@ if (!defined('PROTOCOLOS_INTERNAL')) {
  * (: no macOS/Linux, ; no Windows).
  */
 
-$defaultBasePath = getenv('PROTOCOLOS_DOCUMENTOS_BASE')
-    ?: '\\\\Srv01\\d\\Disco F\\A FAZER - ESCRITURAS';
+require_once __DIR__ . '/settings.php';
+
+$settings = protocolos_settings_read();
+$defaultBasePath = (string) ($settings['documentos_base_path'] ?? '');
 
 $extraBasePaths = array_filter(array_map(
     static fn ($path) => trim((string) $path),
     explode(PATH_SEPARATOR, (string) (getenv('PROTOCOLOS_DOCUMENTOS_EXTRA_BASES') ?: ''))
 ));
+$settingsExtraBasePaths = $settings['documentos_extra_base_paths'] ?? [];
+if (!is_array($settingsExtraBasePaths)) {
+    $settingsExtraBasePaths = [];
+}
 
 $localDevBasePath = trim((string) (getenv('PROTOCOLOS_DOCUMENTOS_DEV_BASE') ?: ''));
 $projectTestBasePath = dirname(__DIR__, 2) . '/storage/documentos-teste';
@@ -29,11 +35,12 @@ $projectTestBasePath = dirname(__DIR__, 2) . '/storage/documentos-teste';
 $allowedBasePaths = array_values(array_unique(array_filter(array_merge(
     [$defaultBasePath],
     $extraBasePaths,
+    $settingsExtraBasePaths,
     [$localDevBasePath, $projectTestBasePath]
 ))));
 
 return [
     'base_path' => $defaultBasePath,
     'allowed_base_paths' => $allowedBasePaths,
-    'max_items' => 600,
+    'max_items' => (int) ($settings['documentos_max_items'] ?? 600),
 ];

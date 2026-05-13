@@ -96,8 +96,12 @@ function openModal(modal) {
         modalCloseTimers.delete(modal);
     }
     modal.classList.remove("is-closing");
+    modal.setAttribute("tabindex", "-1");
     if (!modal.open) modal.showModal();
-    requestAnimationFrame(() => modal.classList.add("is-open"));
+    requestAnimationFrame(() => {
+        modal.classList.add("is-open");
+        modal.focus({ preventScroll: true });
+    });
 }
 
 function closeModal(modal) {

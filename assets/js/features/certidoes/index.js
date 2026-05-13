@@ -281,13 +281,25 @@ export function resolveCertificateIdentities(docs) {
     return docs;
 }
 
-function buildSentence(doc) {
+function buildSentence(doc, options = {}) {
     const status = doc.status || "nao identificado";
-    if (doc.type === "municipal") return `Certidão ${status} de débitos municipais sob o nº ${doc.number}, expedida pela Prefeitura Municipal de Irati/PR, emitida em ${doc.issueDate}`;
-    if (doc.type === "estadual") return `Certidão ${status} de débitos tributários e de dívida ativa estadual, sob o nº ${doc.number}, emitida pela Receita Estadual do Paraná em ${doc.issueDate}`;
-    if (doc.type === "federal") return `Certidão ${status} de débitos relativos aos tributos federais e à dívida ativa da União, com código de controle nº ${doc.number}, emitida em ${doc.issueDate}`;
-    if (doc.type === "trabalhista") return `Certidão ${status} de débitos trabalhistas expedida pelo Tribunal Superior do Trabalho  TST, sob o nº ${doc.number}, emitida em ${doc.issueDate}`;
+    const includeIssueDate = options.includeIssueDate !== false;
+    const issueDateSuffix = includeIssueDate ? `, emitida em ${doc.issueDate}` : "";
+
+    if (doc.type === "municipal") return `Certidão ${status} de débitos municipais sob o nº ${doc.number}, expedida pela Prefeitura Municipal de Irati/PR${issueDateSuffix}`;
+    if (doc.type === "estadual") {
+        const dateSuffix = includeIssueDate ? ` em ${doc.issueDate}` : "";
+        return `Certidão ${status} de débitos tributários e de dívida ativa estadual, sob o nº ${doc.number}, emitida pela Receita Estadual do Paraná${dateSuffix}`;
+    }
+    if (doc.type === "federal") return `Certidão ${status} de débitos relativos aos tributos federais e à dívida ativa da União, com código de controle nº ${doc.number}${issueDateSuffix}`;
+    if (doc.type === "trabalhista") return `Certidão ${status} de débitos trabalhistas expedida pelo Tribunal Superior do Trabalho  TST, sob o nº ${doc.number}${issueDateSuffix}`;
     return "";
+}
+
+function getCommonIssueDate(docs) {
+    if (docs.length <= 1) return "";
+    const issueDates = [...new Set(docs.map((doc) => doc.issueDate).filter(Boolean))];
+    return issueDates.length === 1 ? issueDates[0] : "";
 }
 
 export function isCompleteCertificate(doc) {
@@ -344,11 +356,44 @@ export function buildCertificatesOutput(documents) {
     const blocks = [];
     groups.forEach((docs) => {
         const displayName = docs.find((doc) => doc.name)?.name || docs[0]?.cpf || "PESSOA NÃO IDENTIFICADA";
-        const parts = docs.map(buildSentence).filter(Boolean);
-        if (parts.length) blocks.push(`${displayName}: ${parts.join("; ")};`);
+        const commonIssueDate = getCommonIssueDate(docs);
+        const parts = docs.map((doc) => buildSentence(doc, { includeIssueDate: !commonIssueDate })).filter(Boolean);
+        if (!parts.length) return;
+        if (commonIssueDate) {
+            blocks.push(`${displayName}: ${parts.join("; ")}; todas emitidas em ${commonIssueDate};`);
+        } else {
+            blocks.push(`${displayName}: ${parts.join("; ")};`);
+        }
     });
 
     return blocks.join("\n\n");
+}
+
+export function buildCertificatesOutputHighlights(documents) {
+    const validDocs = resolveCertificateIdentities([...documents]).filter(isCompleteCertificate).sort(compareCertificates);
+    const groups = new Map();
+    for (const doc of validDocs) {
+        const key = getCertificateGroupKey(doc);
+        if (!key) continue;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(doc);
+    }
+
+    const highlights = [];
+    groups.forEach((docs) => {
+        const commonIssueDate = getCommonIssueDate(docs);
+        docs.forEach((doc) => {
+            const isPositive = doc.status === "positiva" || doc.status === "positiva com efeitos de negativa";
+            const isExpired = doc.validityState === "vencida";
+            if (!isPositive && !isExpired) return;
+            highlights.push({
+                text: buildSentence(doc, { includeIssueDate: !commonIssueDate }),
+                state: isExpired ? "expired" : "positive"
+            });
+        });
+    });
+
+    return highlights;
 }
 
 export function buildCertificateWarnings(documents) {

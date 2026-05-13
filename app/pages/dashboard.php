@@ -11,6 +11,7 @@ require __DIR__ . '/../services/protocolos-metadata.php';
 require __DIR__ . '/../views/app-layout.php';
 
 $metadata = protocolos_build_board_metadata($pdo);
+$showDocumentsFeature = false;
 
 $scriptPath = 'assets/js/apps/protocolos/index.js';
 $scriptVersion = protocolos_asset_version($scriptPath);
@@ -114,7 +115,7 @@ protocolos_render_app_start(
                     <p id="protocols-modal-subtitle">Autosave ativo nos campos editáveis.</p>
                 </div>
                 <div class="protocols-dialog-actions">
-                    <button class="button button-secondary" type="button" id="protocols-print">Gerar PDF</button>
+                    <button class="button button-secondary" type="button" id="protocols-print">Imprimir Ficha</button>
                     <button class="chat-icon-button" type="button" id="protocols-close" aria-label="Fechar">×</button>
                 </div>
             </header>
@@ -292,29 +293,31 @@ protocolos_render_app_start(
                     </label>
                 </section>
 
-                <section class="surface surface-nested protocols-modal-section protocols-documents-section">
-                    <div class="surface-head surface-head-compact">
-                        <div class="protocol-section-heading">
-                            <span class="protocol-section-icon" data-protocol-icon="archive" aria-hidden="true"></span>
-                            <div>
-                                <span class="eyebrow">Documentos</span>
-                                <h2>Pasta vinculada</h2>
+                <?php if ($showDocumentsFeature): ?>
+                    <section class="surface surface-nested protocols-modal-section protocols-documents-section">
+                        <div class="surface-head surface-head-compact">
+                            <div class="protocol-section-heading">
+                                <span class="protocol-section-icon" data-protocol-icon="archive" aria-hidden="true"></span>
+                                <div>
+                                    <span class="eyebrow">Documentos</span>
+                                    <h2>Pasta vinculada</h2>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <label class="field">
-                        <span>Caminho da pasta</span>
-                        <input type="text" data-protocol-field="pasta_documentos" id="protocols-documents-path" placeholder="\\Srv01\d\Disco F\A FAZER - ESCRITURAS\...">
-                    </label>
-                    <div class="surface-actions protocols-documents-actions">
-                        <button class="button button-secondary" type="button" id="protocols-copy-documents-path">Copiar caminho</button>
-                        <button class="button button-secondary" type="button" id="protocols-open-documents-path">Abrir pasta</button>
-                        <button class="button button-primary" type="button" id="protocols-refresh-documents">Atualizar lista</button>
-                    </div>
-                    <div class="protocols-documents-feedback" id="protocols-documents-feedback">Informe o caminho da pasta para listar os documentos.</div>
-                    <div class="protocols-documents-summary" id="protocols-documents-summary"></div>
-                    <div class="protocols-documents-list" id="protocols-documents-list"></div>
-                </section>
+                        <label class="field">
+                            <span>Caminho da pasta</span>
+                            <input type="text" data-protocol-field="pasta_documentos" id="protocols-documents-path" placeholder="\\Srv01\d\Disco F\A FAZER - ESCRITURAS\...">
+                        </label>
+                        <div class="surface-actions protocols-documents-actions">
+                            <button class="button button-secondary" type="button" id="protocols-copy-documents-path">Copiar caminho</button>
+                            <button class="button button-secondary" type="button" id="protocols-open-documents-path">Abrir pasta</button>
+                            <button class="button button-primary" type="button" id="protocols-refresh-documents">Atualizar lista</button>
+                        </div>
+                        <div class="protocols-documents-feedback" id="protocols-documents-feedback">Informe o caminho da pasta para listar os documentos.</div>
+                        <div class="protocols-documents-summary" id="protocols-documents-summary"></div>
+                        <div class="protocols-documents-list" id="protocols-documents-list"></div>
+                    </section>
+                <?php endif; ?>
             </div>
         </form>
     </dialog>
@@ -353,6 +356,25 @@ protocolos_render_app_start(
             </div>
         </div>
     </div>
+
+    <dialog id="protocols-note-delete-modal" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
+        <div id="protocols-note-delete-overlay" class="protocol-modal-overlay"></div>
+        <div class="protocol-modal-panel protocols-confirm-panel" role="dialog" aria-modal="true" aria-labelledby="protocols-note-delete-title">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow">Confirmação</span>
+                    <h2 id="protocols-note-delete-title">Excluir andamento?</h2>
+                </div>
+                <button id="protocols-note-delete-close" class="chat-icon-button" type="button" aria-label="Fechar">×</button>
+            </div>
+            <p class="protocol-tool-note">Esta ação remove o andamento selecionado deste protocolo.</p>
+            <div class="protocols-confirm-summary" id="protocols-note-delete-summary">Selecione um andamento para excluir.</div>
+            <div class="surface-actions">
+                <button class="button button-secondary" id="protocols-note-delete-cancel" type="button">Cancelar</button>
+                <button class="button button-primary danger" id="protocols-note-delete-confirm" type="button">Excluir andamento</button>
+            </div>
+        </div>
+    </dialog>
 
     <div id="dashboard-calendar-modal" class="protocol-modal hidden" aria-hidden="true">
         <div id="dashboard-calendar-overlay" class="protocol-modal-overlay"></div>

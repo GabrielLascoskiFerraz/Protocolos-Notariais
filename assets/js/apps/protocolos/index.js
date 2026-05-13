@@ -86,6 +86,7 @@ const state = {
     draggingSourceStatus: "",
     draggingStartRect: null,
     pendingDeleteId: "",
+    pendingDeleteNoteId: "",
     freshCardIds: new Set(),
     animationCleanupTimer: 0,
     filterAnimationTimer: 0,
@@ -93,6 +94,7 @@ const state = {
     archivedTransition: "",
     archivedToggleTimer: 0,
     archiveMotionTimer: 0,
+    boardEntranceTimer: 0,
     modalBoardRefreshPending: false,
     saveInFlight: new Map(),
     modalNoticeTimer: 0,
@@ -166,7 +168,13 @@ const dom = {
     deleteClose: document.getElementById("protocols-delete-close"),
     deleteCancel: document.getElementById("protocols-delete-cancel"),
     deleteConfirm: document.getElementById("protocols-delete-confirm"),
-    deleteSummary: document.getElementById("protocols-delete-summary")
+    deleteSummary: document.getElementById("protocols-delete-summary"),
+    noteDeleteModal: document.getElementById("protocols-note-delete-modal"),
+    noteDeleteOverlay: document.getElementById("protocols-note-delete-overlay"),
+    noteDeleteClose: document.getElementById("protocols-note-delete-close"),
+    noteDeleteCancel: document.getElementById("protocols-note-delete-cancel"),
+    noteDeleteConfirm: document.getElementById("protocols-note-delete-confirm"),
+    noteDeleteSummary: document.getElementById("protocols-note-delete-summary")
 };
 
 function escapeHtml(value) {
@@ -481,7 +489,7 @@ function cardLines(item) {
         : `<div class="protocol-card-empty">Sem dados detalhados neste protocolo.</div>`;
 }
 
-function renderCard(item) {
+function renderCard(item, cardIndex = 0, columnIndex = 0) {
     const urgent = Number(item.urgente || 0) === 1;
     const tag = normalize(item.tag_custom);
     const ato = normalize(item.ato) || "Sem ato";
@@ -490,9 +498,10 @@ function renderCard(item) {
     const id = String(item.id || "");
     const animationClass = state.freshCardIds.has(id) ? " is-card-entering" : "";
     const flightClass = state.activeCardFlights.has(id) ? " is-card-flight-target" : "";
+    const openingDelay = Math.min(620, 140 + (Number(columnIndex) || 0) * 70 + (Number(cardIndex) || 0) * 18);
 
     return `
-        <article class="protocol-card${urgent ? " is-urgent" : ""}${animationClass}${flightClass}" draggable="true" data-protocol-id="${escapeHtml(item.id)}" data-status="${escapeHtml(item.status)}" style="--tag-color:${escapeHtml(color)}">
+        <article class="protocol-card${urgent ? " is-urgent" : ""}${animationClass}${flightClass}" draggable="true" data-protocol-id="${escapeHtml(item.id)}" data-status="${escapeHtml(item.status)}" style="--tag-color:${escapeHtml(color)};--protocol-card-index:${escapeHtml(cardIndex)};--protocol-card-delay:${escapeHtml(openingDelay)}ms">
             <button class="protocol-card-main" type="button" data-open-protocol="${escapeHtml(item.id)}">
                 <div class="protocol-card-top">
                     <span class="protocol-card-ato">${renderHighlightedText(ato)}</span>
@@ -563,16 +572,20 @@ function renderColumnFooter(status) {
     return `<button class="protocol-column-more" type="button" data-load-more-status="${escapeHtml(status)}">Carregar mais${escapeHtml(suffix)}</button>`;
 }
 
-function renderColumn(status, label) {
+function renderColumn(status, label, columnIndex = 0, options = {}) {
     const items = state.itemsByStatus.get(status) || [];
     const isLoading = state.loadingByStatus.has(status) || state.loadingBoard;
     const isInitialLoading = isLoading && !items.length;
     const transitionClass = status === "ARQUIVADOS" && state.archivedTransition === "show"
         ? " is-column-revealed"
         : "";
+    const entranceClass = options.entrance ? " is-column-entering" : "";
+    const columnDelay = 120 + (Number(columnIndex) || 0) * 80;
+    const columnHeadDelay = columnDelay + 90;
+    const columnSoftDelay = columnDelay + 140;
     const count = columnCount(status);
     return `
-        <section class="protocol-column protocol-column-${status.toLowerCase().replace(/_/g, "-")}${transitionClass}" data-status="${status}">
+        <section class="protocol-column protocol-column-${status.toLowerCase().replace(/_/g, "-")}${transitionClass}${entranceClass}" data-status="${status}" style="--protocol-column-index:${escapeHtml(columnIndex)};--protocol-column-delay:${escapeHtml(columnDelay)}ms;--protocol-column-head-delay:${escapeHtml(columnHeadDelay)}ms;--protocol-column-soft-delay:${escapeHtml(columnSoftDelay)}ms">
             <header>
                 <div>
                     <span class="protocol-column-title">${protocolIcon(statusIcons[status] || "file")}<span class="eyebrow">${escapeHtml(label)}</span></span>
@@ -582,7 +595,7 @@ function renderColumn(status, label) {
             </header>
             <div class="protocol-column-cards" data-drop-status="${status}" data-scroll-status="${status}" aria-label="${escapeHtml(label)}">
                 ${items.length
-                    ? items.map(renderCard).join("")
+                    ? items.map((item, cardIndex) => renderCard(item, cardIndex, columnIndex)).join("")
                     : (isInitialLoading
                         ? renderSkeletonCards(4)
                         : `<div class="protocol-empty-column">Nenhum protocolo aqui.</div>`)}
@@ -840,8 +853,16 @@ function renderStatusColumnsPreservingScroll(statusList = [], options = {}) {
 function renderBoard(options = {}) {
     const scrollByStatus = options.preserveScroll ? captureColumnScrolls() : null;
     const visibleStatuses = statuses.filter(([status]) => state.showArchived || status !== "ARQUIVADOS");
+    const entrance = Boolean(options.entrance) && !shouldReduceMotion();
     dom.board.classList.toggle("is-loading", state.loadingBoard);
     dom.board.classList.toggle("is-showing-archived", state.showArchived);
+    dom.board.classList.toggle("is-opening-board", entrance);
+    window.clearTimeout(state.boardEntranceTimer);
+    if (entrance) {
+        state.boardEntranceTimer = window.setTimeout(() => {
+            dom.board.classList.remove("is-opening-board");
+        }, 1280);
+    }
     if (state.lastError) {
         dom.board.innerHTML = `<section class="surface protocols-empty"><strong>Não foi possível carregar os protocolos</strong><p>${escapeHtml(state.lastError)}</p></section>`;
         return;
@@ -849,7 +870,7 @@ function renderBoard(options = {}) {
     const nextCounts = new Map(visibleStatuses.map(([status]) => [status, columnCount(status)]));
     const previousCounts = new Map(state.previousCountsByStatus);
 
-    dom.board.innerHTML = visibleStatuses.map(([status, label]) => renderColumn(status, label)).join("");
+    dom.board.innerHTML = visibleStatuses.map(([status, label], columnIndex) => renderColumn(status, label, columnIndex, { entrance })).join("");
     if (scrollByStatus) {
         restoreColumnScrolls(scrollByStatus);
     }
@@ -1195,7 +1216,8 @@ async function loadBoard(options = {}) {
         renderBoard({
             beforeRects,
             preserveScroll: softRefresh,
-            settle: (softRefresh && !suppressSoftRefreshIndicator) || animateResults
+            settle: (softRefresh && !suppressSoftRefreshIndicator) || animateResults,
+            entrance: !wasReady && !state.lastError
         });
     }
 }
@@ -2091,6 +2113,64 @@ function requestDeleteProtocol(id) {
     document.body.style.overflow = "hidden";
 }
 
+function closeNoteDeleteModal() {
+    state.pendingDeleteNoteId = "";
+    if (!dom.noteDeleteModal) return;
+    dom.noteDeleteModal.classList.add("is-closing");
+    window.setTimeout(() => {
+        if (typeof dom.noteDeleteModal.close === "function" && dom.noteDeleteModal.open) {
+            dom.noteDeleteModal.close();
+        }
+        dom.noteDeleteModal.classList.add("hidden");
+        dom.noteDeleteModal.classList.remove("is-closing", "is-opening");
+        dom.noteDeleteModal.setAttribute("aria-hidden", "true");
+        if (!dom.deleteModal || dom.deleteModal.classList.contains("hidden")) {
+            document.body.style.overflow = "";
+        }
+    }, 200);
+}
+
+function requestDeleteNote(noteId) {
+    const id = String(noteId || "");
+    if (!id) return;
+    const note = state.currentLists.notes.find((item) => String(item.id) === id);
+    const descricao = normalize(note?.descricao || "");
+    state.pendingDeleteNoteId = id;
+    if (dom.noteDeleteSummary) {
+        dom.noteDeleteSummary.textContent = descricao
+            ? descricao.slice(0, 220)
+            : `Andamento ${id}`;
+    }
+    if (!dom.noteDeleteModal) return;
+    dom.noteDeleteModal.classList.remove("is-closing");
+    dom.noteDeleteModal.classList.remove("hidden");
+    if (typeof dom.noteDeleteModal.showModal === "function" && !dom.noteDeleteModal.open) {
+        dom.noteDeleteModal.showModal();
+    }
+    dom.noteDeleteModal.classList.add("is-opening");
+    dom.noteDeleteModal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+}
+
+async function deleteNote(noteId) {
+    const id = String(noteId || "");
+    if (!id) return;
+    const noteElement = [...(dom.notes?.querySelectorAll("[data-note-id]") || [])]
+        .find((element) => String(element.dataset.noteId || "") === id);
+    if (noteElement?.timer) window.clearTimeout(noteElement.timer);
+    closeNoteDeleteModal();
+    removeNoteFromModal(id);
+    try {
+        const data = await apiPost("andamentos", { action: "delete" }, { id, protocolo_id: currentId() });
+        applyServerClock(data);
+        markCurrentProtocolTouched(data);
+        await loadNotes();
+    } catch (error) {
+        showProtocolToast(error.message || "Não foi possível remover o andamento.");
+        await loadNotes();
+    }
+}
+
 async function deleteProtocol(id) {
     const item = findProtocolInState(id);
     const status = normalize(item?.status) || "";
@@ -2512,17 +2592,7 @@ function bindModalEvents() {
             }
         }
         if (removeNote) {
-            const noteId = removeNote.dataset.removeNote;
-            removeNoteFromModal(noteId);
-            try {
-                const data = await apiPost("andamentos", { action: "delete" }, { id: noteId, protocolo_id: currentId() });
-                applyServerClock(data);
-                markCurrentProtocolTouched(data);
-                await loadNotes();
-            } catch (error) {
-                showProtocolToast(error.message || "Não foi possível remover o andamento.");
-                await loadNotes();
-            }
+            requestDeleteNote(removeNote.dataset.removeNote);
         }
     });
 }
@@ -2535,7 +2605,22 @@ function bindConfirmEvents() {
         if (!state.pendingDeleteId) return;
         deleteProtocol(state.pendingDeleteId).catch(console.error);
     });
+    dom.noteDeleteClose?.addEventListener("click", closeNoteDeleteModal);
+    dom.noteDeleteCancel?.addEventListener("click", closeNoteDeleteModal);
+    dom.noteDeleteOverlay?.addEventListener("click", closeNoteDeleteModal);
+    dom.noteDeleteModal?.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        closeNoteDeleteModal();
+    });
+    dom.noteDeleteConfirm?.addEventListener("click", () => {
+        if (!state.pendingDeleteNoteId) return;
+        deleteNote(state.pendingDeleteNoteId).catch(console.error);
+    });
     document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && dom.noteDeleteModal && !dom.noteDeleteModal.classList.contains("hidden")) {
+            closeNoteDeleteModal();
+            return;
+        }
         if (event.key === "Escape" && dom.deleteModal && !dom.deleteModal.classList.contains("hidden")) {
             closeDeleteModal();
         }

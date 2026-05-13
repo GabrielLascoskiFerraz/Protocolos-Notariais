@@ -10,12 +10,14 @@ if (!defined('PROTOCOLOS_INTERNAL')) {
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-$calendarUrl = getenv('PROTOCOLOS_CALENDAR_ICS_URL')
-    ?: 'https://calendar.google.com/calendar/ical/2cartorio.irati%40gmail.com/private-d2973bdcdead518993031b26f88c612a/basic.ics';
+require_once __DIR__ . '/../config/settings.php';
+
+$settings = protocolos_settings_read();
+$calendarUrl = (string) ($settings['calendar_ics_url'] ?? '');
 $cacheDir = getenv('PROTOCOLOS_CACHE_DIR')
     ?: rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'protocolos-notariais-cache';
 $cacheFile = $cacheDir . '/calendar-cache.json';
-$cacheTtl = 1800;
+$cacheTtl = max(60, min(21600, (int) ($settings['calendar_cache_ttl_seconds'] ?? 1800)));
 $timezone = new DateTimeZone('America/Sao_Paulo');
 
 function jsonResponse(array $payload, int $status = 200): void

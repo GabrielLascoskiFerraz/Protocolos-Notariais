@@ -21,6 +21,7 @@ function protocolos_nav_items(): array
         ['group' => 'Trabalho', 'href' => 'calendario.php', 'label' => 'Consultar Agenda', 'short' => 'Agenda', 'icon' => 'calendar'],
         ['group' => 'Ferramentas', 'href' => 'certidoes.php', 'label' => 'Leitor de Certidões', 'short' => 'Certidões', 'icon' => 'certificate'],
         ['group' => 'Ferramentas', 'href' => 'gerador-qrcode.php', 'label' => 'Gerador de QR Code', 'short' => 'QR Code', 'icon' => 'qrcode'],
+        ['group' => 'Sistema', 'href' => 'configuracoes.php', 'label' => 'Configurações', 'short' => 'Configurações', 'icon' => 'settings'],
     ];
 }
 
@@ -31,6 +32,7 @@ function protocolos_nav_icon_markup(string $icon): string
         'calendar' => '<rect x="6.5" y="7.5" width="15" height="13" rx="2"></rect><path d="M10 5.5v4"></path><path d="M18 5.5v4"></path><path d="M6.5 11h15"></path><path d="M10 14h2.2M15 14h2.2M10 17h2.2M15 17h2.2"></path>',
         'qrcode' => '<path d="M7.5 7.5h5v5h-5z"></path><path d="M15.5 7.5h5v5h-5z"></path><path d="M7.5 15.5h5v5h-5z"></path><path d="M16 16h1.8v1.8H16z"></path><path d="M19.3 16h1.2v4.5h-4.5v-1.2"></path>',
         'certificate' => '<path d="M8.5 6.5h11a2 2 0 0 1 2 2v13l-3-1.5-3 1.5-3-1.5-3 1.5-3-1.5v-13a2 2 0 0 1 2-2Z"></path><path d="M10.5 10.5h7"></path><path d="M10.5 13.5h7"></path><path d="M10.5 16.5h4"></path>',
+        'settings' => '<path d="M14 9.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z"></path><path d="M14 5.4v2.1M14 20.5v2.1M5.4 14h2.1M20.5 14h2.1M7.9 7.9l1.5 1.5M18.6 18.6l1.5 1.5M20.1 7.9l-1.5 1.5M9.4 18.6l-1.5 1.5"></path>',
         'tools' => '<path d="M7 9.5h7"></path><path d="M18 9.5h3"></path><circle cx="16" cy="9.5" r="1.8"></circle><path d="M7 14h3"></path><path d="M14 14h7"></path><circle cx="12" cy="14" r="1.8"></circle><path d="M7 18.5h8"></path><path d="M19 18.5h2"></path><circle cx="17" cy="18.5" r="1.8"></circle>',
     ];
 
@@ -50,6 +52,7 @@ function protocolos_tool_icon_markup(string $icon, string $class = 'tool-inline-
         'output' => '<path d="M6.5 4.5h11A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18V6a1.5 1.5 0 0 1 1.5-1.5Z"></path><path d="M8.5 9h7"></path><path d="M8.5 12h7"></path><path d="M8.5 15h4"></path>',
         'pdf' => '<path d="M7 4.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z"></path><path d="M14 4.5V9h4"></path><path d="M8.5 14.5h1.2a1.2 1.2 0 1 0 0-2.4H8.5v4.8"></path><path d="M12.3 12.1v4.8h1.1a2.4 2.4 0 0 0 0-4.8h-1.1Z"></path>',
         'qrcode' => '<path d="M4.5 4.5h6v6h-6z"></path><path d="M13.5 4.5h6v6h-6z"></path><path d="M4.5 13.5h6v6h-6z"></path><path d="M14 14h2v2h-2z"></path><path d="M18 14h1.5v5.5H14V18"></path>',
+        'server' => '<rect x="5" y="4.5" width="14" height="5.5" rx="1.8"></rect><rect x="5" y="14" width="14" height="5.5" rx="1.8"></rect><path d="M8 7.25h.01"></path><path d="M8 16.75h.01"></path><path d="M11 7.25h5"></path><path d="M11 16.75h5"></path><path d="M12 10v4"></path>',
         'target' => '<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3"></circle><path d="M12 2.5v3"></path><path d="M12 18.5v3"></path><path d="M2.5 12h3"></path><path d="M18.5 12h3"></path>',
         'upload' => '<path d="M12 16V4"></path><path d="m7.5 8.5 4.5-4.5 4.5 4.5"></path><path d="M5 19.5h14"></path>',
     ];
@@ -117,6 +120,24 @@ function protocolos_render_head(string $title, string $description, ?string $scr
     <link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
     <link rel="shortcut icon" type="image/svg+xml" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
     <link rel="apple-touch-icon" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
+    <script>
+        (function () {
+            try {
+                var prefs = JSON.parse(localStorage.getItem('protocolos.userPreferences.v1') || '{}');
+                var root = document.documentElement;
+                var themePreference = ['system', 'light', 'dark'].indexOf(prefs.theme) >= 0 ? prefs.theme : 'system';
+                var resolvedTheme = themePreference === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : themePreference;
+                root.dataset.theme = resolvedTheme;
+                root.dataset.themePreference = themePreference;
+                root.dataset.density = ['compact', 'comfortable', 'spacious'].indexOf(prefs.density) >= 0 ? prefs.density : 'comfortable';
+                root.style.colorScheme = resolvedTheme;
+                var scale = Number(prefs.fontScale || 1);
+                root.style.setProperty('--user-font-scale', String(Math.max(0.9, Math.min(1.18, scale))));
+            } catch (error) {}
+        })();
+    </script>
     <link rel="stylesheet" href="<?= htmlspecialchars($cssPath . '?v=' . protocolos_asset_version($cssPath), ENT_QUOTES, 'UTF-8') ?>">
     <script>
         window.BASE_URL = <?= json_encode($baseHref) ?>;
@@ -125,6 +146,7 @@ function protocolos_render_head(string $title, string $description, ?string $scr
 <?php foreach ($extraHead as $tag): ?>
     <?= $tag . PHP_EOL ?>
 <?php endforeach; ?>
+    <script type="module" src="assets/js/shared/user-preferences.js?v=<?= htmlspecialchars(protocolos_asset_version('assets/js/shared/user-preferences.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php if ($scriptPath): ?>
     <script type="module" src="<?= htmlspecialchars($scriptPath, ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php endif; ?>
