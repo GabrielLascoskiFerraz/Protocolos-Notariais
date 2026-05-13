@@ -12,8 +12,8 @@ Sistema interno para gestão de protocolos notariais em Kanban, com edição em 
 ## Instalação
 
 1. Crie o banco `dash-protocolos` ou outro nome de sua preferência.
-2. Importe `schema.sql`.
-3. Configure o banco por variáveis de ambiente ou edite `config/db.php`.
+2. Importe `database/schema.sql`.
+3. Configure o banco por variáveis de ambiente ou edite `app/config/db.php`.
 4. Acesse o projeto pelo navegador, por exemplo:
 
 ```text
@@ -42,52 +42,62 @@ Observação: para testes locais de documentos fora da raiz oficial, use `PROTOC
 
 ```text
 .
-├── index.php                         # Dashboard Kanban de protocolos
-├── calendario.php                    # Consultar Agenda
-├── certidoes.php                     # Leitor de Certidões
-├── gerador-qrcode.php                # Gerador de QR Code
-├── components/
-│   └── app-layout.php                # Layout compartilhado/header
-├── apps/
-│   ├── protocolos/
-│   │   ├── api.js                    # Cliente HTTP do módulo de protocolos
-│   │   ├── icons.js                  # Ícones SVG
-│   │   ├── index.js                  # Board, modal, filtros, sync e interações
-│   │   └── pdf.js                    # Impressão/PDF da ficha
-│   ├── agenda/index.js               # UI da agenda
-│   ├── certidoes/index.js            # UI do leitor de certidões
-│   └── qrcode/index.js               # UI do QR Code
-├── functions/
-│   ├── certidoes/index.js            # Extração/estruturação de certidões via PDF.js
-│   └── qrcode/index.js               # Funções puras do QR Code
-├── api/
-│   ├── protocolos_app.php            # API principal consolidada
-│   ├── protocolos.php                # Wrapper compatível para resource=protocolos
-│   ├── andamentos.php                # Wrapper compatível para resource=andamentos
-│   ├── valores.php                   # Wrapper compatível para resource=valores
-│   ├── imoveis.php                   # Wrapper compatível para resource=imoveis
-│   ├── documentos.php                # Wrapper compatível para resource=documentos
-│   ├── calendar.php                  # API/cache do Google Calendar ICS
-│   ├── ato-cores.php                 # Mapa JSON das cores fixas por ato
-│   └── tags.php                      # Endpoint legado de cores persistidas
-├── config/
-│   ├── db.php                        # Conexão PDO
-│   ├── documentos.php                # Raízes permitidas para pastas de documentos
-│   ├── ato-cores.php                 # Mapa fixo de cores dos atos
-├── assets/
-│   ├── css/apollo-product.css        # Camada visual atual baseada no APOLLO
-│   ├── img/logo.png
-│   ├── img/logo-cartorio-mono.svg
-│   ├── js/base.js                    # Helper de base URL usado pela dashboard
-│   ├── js/calendar-alerts.js         # Avisos de agenda na dashboard
+├── index.php                         # Entrada pública: Dashboard Kanban
+├── calendario.php                    # Entrada pública: Consultar Agenda
+├── certidoes.php                     # Entrada pública: Leitor de Certidões
+├── gerador-qrcode.php                # Entrada pública: Gerador de QR Code
+├── .htaccess                         # Proteções HTTP básicas do projeto
+├── app/                              # Código interno, bloqueado para acesso HTTP direto
+│   ├── .htaccess
+│   ├── pages/                        # Telas renderizadas pelos wrappers públicos
+│   │   ├── dashboard.php
+│   │   ├── agenda.php
+│   │   ├── certidoes.php
+│   │   └── qrcode.php
+│   ├── api/                          # Implementações internas das APIs
+│   │   ├── protocolos_app.php
+│   │   ├── calendar.php
+│   │   ├── ato-cores.php
+│   │   └── tags.php
+│   ├── config/
+│   │   ├── db.php                    # Conexão PDO
+│   │   ├── documentos.php            # Raízes permitidas para documentos
+│   │   └── ato-cores.php             # Mapa fixo de cores dos atos
+│   ├── services/
+│   │   └── protocolos-metadata.php   # Metadados iniciais da dashboard
+│   └── views/
+│       └── app-layout.php            # Layout compartilhado/header/helper de ícones
+├── api/                              # Wrappers públicos compatíveis das APIs
+│   ├── protocolos_app.php
+│   ├── protocolos.php
+│   ├── andamentos.php
+│   ├── valores.php
+│   ├── imoveis.php
+│   ├── documentos.php
+│   ├── calendar.php
+│   ├── ato-cores.php
+│   └── tags.php
+├── assets/                           # Arquivos públicos estáticos
+│   ├── css/protocolos-product.css
+│   ├── img/
+│   ├── js/apps/                      # Código de UI por tela
+│   ├── js/features/                  # Regras client-side puras
+│   ├── js/shared/                    # Helpers compartilhados
 │   └── vendor/                       # PDF.js e QR Code Styling
-├── tests/
-│   ├── js/                           # Testes node:test
-│   └── php/                          # Runner de integração das APIs
-├── schema.sql                        # Estrutura completa do banco
-├── 2026_05_13_add_pasta_documentos.sql
-└── 2026_05_13_add_protocolos_indexes.sql
+├── database/                         # SQL, bloqueado por HTTP
+│   ├── .htaccess
+│   ├── schema.sql
+│   └── migrations/
+├── storage/                          # Arquivos temporários/testes locais, bloqueado por HTTP
+│   ├── .htaccess
+│   └── documentos-teste/
+└── tests/                            # Testes, bloqueado por HTTP
+    ├── .htaccess
+    ├── js/
+    └── php/
 ```
+
+Observação: os arquivos públicos na raiz são wrappers pequenos. A implementação das telas fica em `app/pages/`, mantendo a raiz mais limpa e preservando URLs já usadas.
 
 ## Funcionalidades
 
@@ -131,11 +141,11 @@ Campos relevantes em `protocolos`:
 Migrações avulsas:
 
 ```sql
-2026_05_13_add_pasta_documentos.sql
-2026_05_13_add_protocolos_indexes.sql
+database/migrations/2026_05_13_add_pasta_documentos.sql
+database/migrations/2026_05_13_add_protocolos_indexes.sql
 ```
 
-Para uma instalação nova, basta importar `schema.sql`.
+Para uma instalação nova, basta importar `database/schema.sql`.
 
 ## API Principal
 
@@ -178,7 +188,7 @@ Todas as APIs retornam JSON. Erros internos não expõem detalhes técnicos ao n
 
 ## Documentos Vinculados
 
-A pasta só é listada se estiver dentro das raízes permitidas em `config/documentos.php`.
+A pasta só é listada se estiver dentro das raízes permitidas em `app/config/documentos.php`.
 
 Raiz padrão:
 
@@ -197,6 +207,8 @@ Arquivos sinalizados visualmente como problemáticos:
 - `.bat`
 
 O sistema não apaga, move ou renomeia arquivos.
+
+Para testes locais controlados dentro do projeto, use `storage/documentos-teste/`. Essa pasta é bloqueada por HTTP e fica liberada apenas para a listagem interna de documentos.
 
 ## Agenda
 
@@ -221,7 +233,7 @@ find . -path './assets/vendor' -prune -o -path './.git' -prune -o -name '*.php' 
 ### Syntax check JS
 
 ```bash
-find apps functions assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
+find assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
 ```
 
 ### Testes JS
@@ -240,8 +252,8 @@ Requer servidor e banco ativos.
 
 ## Observações de Manutenção
 
-- O frontend ativo está em `apps/` e `functions/`.
-- O CSS ativo é `assets/css/apollo-product.css`.
-- A API ativa é `api/protocolos_app.php`.
-- Evite recriar módulos em `assets/js`; essa pasta hoje contém apenas helpers globais pontuais.
-- Novas alterações de banco devem ser feitas por arquivo SQL versionado e refletidas em `schema.sql`.
+- O frontend ativo está em `assets/js/apps/`, `assets/js/features/` e `assets/js/shared/`.
+- O CSS ativo é `assets/css/protocolos-product.css`.
+- A API pública ativa é `api/protocolos_app.php`; a implementação fica em `app/api/protocolos_app.php`.
+- Mantenha código interno PHP em `app/` e deixe `api/` apenas como camada pública/compatibilidade.
+- Novas alterações de banco devem ser feitas por arquivo SQL versionado e refletidas em `database/schema.sql`.

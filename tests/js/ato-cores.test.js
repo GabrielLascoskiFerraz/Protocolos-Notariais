@@ -5,19 +5,19 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * Testa a integridade do mapa de cores centralizado em config/ato-cores.php.
+ * Testa a integridade do mapa de cores centralizado em app/config/ato-cores.php.
  * Verifica que o arquivo PHP é parsável e contém cores hex válidas.
  *
  * Execução: node --test tests/js/ato-cores.test.js
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const phpFile = readFileSync(resolve(__dirname, '../../config/ato-cores.php'), 'utf-8');
+const phpFile = readFileSync(resolve(__dirname, '../../app/config/ato-cores.php'), 'utf-8');
 
 // Extrai as entradas 'chave' => '#hex' do PHP
 const entries = [...phpFile.matchAll(/'([^']+)'\s*=>\s*'(#[0-9a-fA-F]{6})'/g)];
 
-describe('config/ato-cores.php', () => {
+describe('app/config/ato-cores.php', () => {
     it('contem pelo menos 50 atos', () => {
         assert.ok(entries.length >= 50, `Encontrados ${entries.length} atos (esperado >= 50)`);
     });

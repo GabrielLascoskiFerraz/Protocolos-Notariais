@@ -2,6 +2,10 @@
 .DS_Store
 **/.DS_Store
 
-# arquivos locais
+# arquivos locais/temporários
 import.php
-cache/calendar-cache.json
+cache/
+storage/*
+!storage/.htaccess
+!storage/documentos-teste/
+!storage/documentos-teste/.gitkeep

@@ -1,6 +1,6 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+declare(strict_types=1);
 
-$cores = require __DIR__ . '/../config/ato-cores.php';
+define('PROTOCOLOS_INTERNAL', true);
 
-echo json_encode($cores);
+require __DIR__ . '/../app/api/ato-cores.php';
