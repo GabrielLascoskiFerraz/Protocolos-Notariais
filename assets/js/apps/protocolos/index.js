@@ -212,6 +212,23 @@ function moneyInputValue(value) {
     });
 }
 
+function normalizedProtocolFieldValue(field, value) {
+    if (field === "ficha") return String(value ?? "").replace(/\D/g, "");
+    if (field === "urgente") return Number(value || 0) === 1 ? "1" : "0";
+    if (field === "valor_ato") {
+        const raw = normalize(value);
+        if (!raw) return "";
+        if (raw.includes(",")) return raw.replace(/[.\s]/g, "").replace(",", ".");
+        if ((raw.match(/\./g) || []).length > 1) {
+            const parts = raw.split(".");
+            const decimal = parts.pop();
+            return `${parts.join("")}.${decimal}`;
+        }
+        return raw;
+    }
+    return normalize(value);
+}
+
 function dateBr(value) {
     if (!value) return "";
     const [year, month, day] = String(value).slice(0, 10).split("-");
@@ -985,6 +1002,15 @@ function patchProtocolInState(protocol, options = {}) {
     syncFilterOptionsFromProtocol(protocol);
     const previousStatus = protocolStatusInState(id);
     if (!previousStatus && !options.insertIfMissing) return [];
+    const previousProtocol = findProtocolInState(id);
+    const sameBoardProtocol = previousProtocol
+        && JSON.stringify(protocolSnapshot(previousProtocol)) === JSON.stringify(protocolSnapshot(protocol));
+    const sameCurrentProtocol = state.current?.id
+        && id === String(state.current.id)
+        && protocolMatchesCurrentVersion(protocol);
+    if (sameBoardProtocol && (!state.current?.id || sameCurrentProtocol || id !== String(state.current.id))) {
+        return [];
+    }
 
     const beforeRects = captureCardRects(previousStatus ? [previousStatus, protocol.status] : [protocol.status]);
     const touched = upsertSyncedProtocol(protocol);
@@ -1691,6 +1717,14 @@ function queueSave(element) {
     const key = `${protocolId}:${field}`;
     const existing = state.saveTimers.get(key);
     if (existing) window.clearTimeout(existing.timer);
+    if (!protocolId || !field) return;
+
+    const currentValue = normalizedProtocolFieldValue(field, elementValue(element));
+    const savedValue = normalizedProtocolFieldValue(field, element.dataset.protocolSavedValue ?? state.current?.[field] ?? "");
+    if (currentValue === savedValue && !state.saveInFlight.has(key)) {
+        state.saveTimers.delete(key);
+        return;
+    }
 
     const entry = {
         key,

@@ -111,6 +111,23 @@ $res = api('api/protocolos.php?action=update', 'POST', [
 ]);
 assert_true($res['body']['success'] === true, 'Apresentante atualizado');
 
+$res = api('api/protocolos.php?action=update', 'POST', [
+    'id'             => $protocoloId,
+    'field'          => 'apresentante',
+    'value'          => 'Teste Apresentante',
+    'expected_value' => 'Teste Apresentante',
+]);
+assert_true($res['code'] === 200, 'Update sem mudança com expected_value retorna 200');
+
+$res = api('api/protocolos.php?action=update', 'POST', [
+    'id'             => $protocoloId,
+    'field'          => 'apresentante',
+    'value'          => 'Valor conflitante',
+    'expected_value' => 'Valor antigo',
+]);
+assert_true($res['code'] === 409, 'Conflito de campo retorna 409');
+assert_true(($res['body']['code'] ?? '') === 'conflict', 'Conflito de campo retorna code=conflict');
+
 // Testa campo não permitido
 $res = api('api/protocolos.php?action=update', 'POST', [
     'id'    => $protocoloId,
@@ -137,6 +154,31 @@ $res = api('api/protocolos.php?action=status', 'POST', [
     'status' => 'INVALIDO',
 ]);
 assert_true($res['code'] === 400, 'Status invalido retorna 400');
+
+$res = api('api/protocolos.php?action=status', 'POST', [
+    'id'              => $protocoloId,
+    'status'          => 'LAVRADOS',
+    'expected_status' => 'PARA_DISTRIBUIR',
+]);
+assert_true($res['code'] === 409, 'Conflito de status retorna 409');
+assert_true(($res['body']['code'] ?? '') === 'conflict', 'Conflito de status retorna code=conflict');
+
+$res = api("api/protocolos.php?action=get&id={$protocoloId}");
+assert_true($res['body']['status'] === 'EM_ANDAMENTO', 'Status permanece EM_ANDAMENTO apos conflito');
+
+$res = api('api/protocolos.php?action=status', 'POST', [
+    'id'              => $protocoloId,
+    'status'          => 'LAVRADOS',
+    'expected_status' => 'EM_ANDAMENTO',
+]);
+assert_true($res['code'] === 200, 'Status com expected_status correto retorna 200');
+
+$res = api('api/protocolos.php?action=status', 'POST', [
+    'id'              => $protocoloId,
+    'status'          => 'EM_ANDAMENTO',
+    'expected_status' => 'LAVRADOS',
+]);
+assert_true($res['code'] === 200, 'Status volta para EM_ANDAMENTO com expected_status correto');
 
 section('Protocolos — Search');
 

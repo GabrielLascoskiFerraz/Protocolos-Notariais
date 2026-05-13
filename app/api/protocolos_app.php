@@ -293,7 +293,21 @@ function protocols_handle_protocols(PDO $pdo, string $action): void
         $status = (string) ($_POST['status'] ?? '');
         $valid = ['PARA_DISTRIBUIR', 'EM_ANDAMENTO', 'PARA_CORRECAO', 'LAVRADOS', 'ARQUIVADOS'];
         if (!in_array($status, $valid, true)) protocols_json(['error' => 'Status inválido'], 400);
-        protocols_require_active_protocol($pdo, $id);
+        $protocol = protocols_require_active_protocol($pdo, $id);
+        $hasExpectedStatus = array_key_exists('expected_status', $_POST) && trim((string) $_POST['expected_status']) !== '';
+        if ($hasExpectedStatus && (string) ($protocol['status'] ?? '') !== (string) $_POST['expected_status']) {
+            protocols_json([
+                'error' => 'Este protocolo foi movido em outro lugar. A coluna foi atualizada com o estado mais recente.',
+                'code' => 'conflict',
+                'field' => 'status',
+                'current_value' => $protocol['status'] ?? null,
+                'protocol' => $protocol,
+                'server_now' => protocols_now($pdo),
+            ], 409);
+        }
+        if ((string) ($protocol['status'] ?? '') === $status) {
+            protocols_json(['success' => true, 'protocol' => $protocol, 'server_now' => protocols_now($pdo)]);
+        }
         $stmt = $pdo->prepare('UPDATE protocolos SET status = :status, updated_at = CURRENT_TIMESTAMP WHERE id = :id AND deletado = 0');
         $stmt->execute([':status' => $status, ':id' => $id]);
         protocols_json(['success' => true, 'protocol' => protocols_fetch_protocol($pdo, $id), 'server_now' => protocols_now($pdo)]);
