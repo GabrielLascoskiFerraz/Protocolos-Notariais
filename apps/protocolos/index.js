@@ -1,9 +1,8 @@
+import { apiGet, apiPost } from "./api.js";
 import { protocolIcon } from "./icons.js";
 import { printProtocolSheet } from "./pdf.js";
 
-const PROTOCOLS_ENDPOINT = new URL("api/protocolos_app.php", document.baseURI || window.location.href).toString();
-const PROTOCOLS_CLIENT_KEY = "apollo.protocolos.clientId.v1";
-const metadata = window.APOLLO_PROTOCOLS_METADATA || {};
+const metadata = window.PROTOCOLOS_METADATA || window.APOLLO_PROTOCOLS_METADATA || {};
 const atoColors = metadata.atoColors || {};
 const atoColorsLower = Object.fromEntries(
     Object.entries(atoColors).map(([name, color]) => [String(name).toLowerCase(), color])
@@ -14,7 +13,8 @@ const filterMetadata = {
     tags: new Set(metadata.tags || [])
 };
 const LOGO_PATH = new URL("assets/img/logo.png", document.baseURI || window.location.href).toString();
-const ARCHIVED_VISIBILITY_KEY = "apollo.protocolos.mostrarArquivados";
+const ARCHIVED_VISIBILITY_KEY = "protocolos.mostrarArquivados";
+const LEGACY_ARCHIVED_VISIBILITY_KEY = "apollo.protocolos.mostrarArquivados";
 
 const statuses = [
     ["PARA_DISTRIBUIR", "Para distribuir"],
@@ -32,20 +32,6 @@ const statusIcons = {
     LAVRADOS: "done",
     ARQUIVADOS: "archive"
 };
-
-function protocolsClientId() {
-    try {
-        const existing = window.sessionStorage.getItem(PROTOCOLS_CLIENT_KEY);
-        if (existing) return existing;
-        const next = window.crypto?.randomUUID?.() || `protocols-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        window.sessionStorage.setItem(PROTOCOLS_CLIENT_KEY, next);
-        return next;
-    } catch {
-        return `protocols-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    }
-}
-
-const PROTOCOLS_CLIENT_ID = protocolsClientId();
 
 const fields = [
     "ficha",
@@ -117,7 +103,8 @@ const state = {
 
 function loadArchivedVisibilityPreference() {
     try {
-        return window.localStorage.getItem(ARCHIVED_VISIBILITY_KEY) === "1";
+        return (window.localStorage.getItem(ARCHIVED_VISIBILITY_KEY)
+            || window.localStorage.getItem(LEGACY_ARCHIVED_VISIBILITY_KEY)) === "1";
     } catch {
         return false;
     }
@@ -351,55 +338,6 @@ async function refreshFilterMetadata() {
     (data.atos || []).forEach((value) => syncFilterOption("ato", value));
     (data.digitadores || []).forEach((value) => syncFilterOption("digitador", value));
     (data.tags || []).forEach((value) => syncFilterOption("tag_custom", value));
-}
-
-function protocolsServerUrl(_path, params = {}) {
-    const url = new URL(PROTOCOLS_ENDPOINT);
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-            url.searchParams.set(key, value);
-        }
-    });
-    return url.toString();
-}
-
-async function parseApiResponse(response) {
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.error || data.ok === false) {
-        const error = new Error(data.detail || data.error || "Falha nos Protocolos.");
-        error.status = response.status;
-        error.data = data;
-        throw error;
-    }
-    return data;
-}
-
-async function apiGet(resource, params = {}) {
-    const response = await fetch(protocolsServerUrl("/protocols/api", {
-        ...params,
-        resource,
-        client_id: PROTOCOLS_CLIENT_ID
-    }), { cache: "no-store" });
-    return parseApiResponse(response);
-}
-
-async function apiPost(resource, params = {}, body = {}) {
-    const payload = new URLSearchParams();
-    payload.set("client_id", PROTOCOLS_CLIENT_ID);
-    payload.set("resource", resource);
-    Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") payload.set(key, value);
-    });
-    Object.entries(body).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) payload.set(key, value);
-    });
-
-    const response = await fetch(PROTOCOLS_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-        body: payload
-    });
-    return parseApiResponse(response);
 }
 
 function applyServerClock(data = {}) {
@@ -1153,7 +1091,6 @@ function protocolEventAppliesToCurrent(event = {}) {
 
 function handleProtocolServerEvent(event = {}) {
     if (!event || event.type === "ping" || event.type === "ready") return;
-    if (event.client_id && event.client_id === PROTOCOLS_CLIENT_ID) return;
 
     applyServerClock(event);
 
@@ -1679,8 +1616,9 @@ async function loadDocuments(id = currentId()) {
         state.currentLists.documents = items;
         const summary = data.summary || {};
         dom.documentsFeedback.textContent = data.path ? `Pasta vinculada: ${data.path}` : "Nenhuma pasta vinculada.";
+        const truncatedLabel = summary.truncated ? ` • exibindo ${items.length} de ${summary.total_found || summary.total || items.length}` : "";
         dom.documentsSummary.textContent = items.length
-            ? `${summary.files || 0} arquivos • ${summary.folders || 0} pastas${summary.problematic ? ` • ${summary.problematic} atenção` : ""}`
+            ? `${summary.files || 0} arquivos • ${summary.folders || 0} pastas${summary.problematic ? ` • ${summary.problematic} atenção` : ""}${truncatedLabel}`
             : "Nenhum arquivo encontrado nesta pasta.";
         dom.documentsList.innerHTML = items.length
             ? items.map(renderDocumentItem).join("")

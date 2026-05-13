@@ -49,7 +49,7 @@ protocolos_render_head(
     [
         'body_class' => 'apollo-body',
         'extra_head' => [
-            '<script>window.APOLLO_PROTOCOLS_METADATA = ' . json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . ';</script>',
+            '<script>window.PROTOCOLOS_METADATA = ' . json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '; window.APOLLO_PROTOCOLS_METADATA = window.PROTOCOLOS_METADATA;</script>',
             '<script type="module" src="assets/js/calendar-alerts.js?v=' . protocolos_asset_version('assets/js/calendar-alerts.js') . '"></script>',
         ],
     ]

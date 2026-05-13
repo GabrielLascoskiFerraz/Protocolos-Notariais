@@ -2,12 +2,9 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../config/db.php';
-require __DIR__ . '/../config/schema.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-
-ensureProtocolosDocumentosSchema($pdo);
 
 function protocols_json(array $payload, int $status = 200): void
 {
@@ -311,8 +308,9 @@ function protocols_handle_properties(PDO $pdo, string $action): void
         protocols_require_active_protocol($pdo, $protocolId);
         $stmt = $pdo->prepare('INSERT INTO protocolos_imoveis (protocolo_id, matricula, area) VALUES (?, ?, ?)');
         $stmt->execute([$protocolId, trim((string) ($_POST['matricula'] ?? '')), trim((string) ($_POST['area'] ?? ''))]);
+        $insertedId = $pdo->lastInsertId();
         protocols_touch($pdo, $protocolId);
-        protocols_json(['success' => true, 'id' => $pdo->lastInsertId(), 'protocol_id' => $protocolId, 'protocol' => protocols_fetch_protocol($pdo, $protocolId), 'server_now' => protocols_now($pdo)]);
+        protocols_json(['success' => true, 'id' => $insertedId, 'protocol_id' => $protocolId, 'protocol' => protocols_fetch_protocol($pdo, $protocolId), 'server_now' => protocols_now($pdo)]);
     }
     if ($action === 'update') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -353,8 +351,9 @@ function protocols_handle_values(PDO $pdo, string $action): void
         if (mb_strlen($description, 'UTF-8') > 255) protocols_json(['error' => 'Descrição do valor excede 255 caracteres'], 400);
         $stmt = $pdo->prepare('INSERT INTO protocolos_valores (protocolo_id, descricao, valor) VALUES (?, ?, ?)');
         $stmt->execute([$protocolId, $description, $value]);
+        $insertedId = $pdo->lastInsertId();
         protocols_touch($pdo, $protocolId);
-        protocols_json(['success' => true, 'id' => $pdo->lastInsertId(), 'protocol_id' => $protocolId, 'total' => protocols_total($pdo, $protocolId), 'protocol' => protocols_fetch_protocol($pdo, $protocolId), 'server_now' => protocols_now($pdo)]);
+        protocols_json(['success' => true, 'id' => $insertedId, 'protocol_id' => $protocolId, 'total' => protocols_total($pdo, $protocolId), 'protocol' => protocols_fetch_protocol($pdo, $protocolId), 'server_now' => protocols_now($pdo)]);
     }
     if ($action === 'update') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -448,10 +447,33 @@ function protocols_problem_reason(string $name, string $extension, bool $isDirec
     return null;
 }
 
+function protocols_assert_real_document_path(string $path): void
+{
+    if (!str_starts_with($path, '/')) return;
+
+    $realPath = realpath($path);
+    if ($realPath === false) return;
+
+    foreach (protocols_document_base_paths() as $basePath) {
+        if (!str_starts_with($basePath, '/')) continue;
+        $realBasePath = realpath($basePath);
+        if ($realBasePath === false) continue;
+        if ($realPath === $realBasePath || str_starts_with($realPath, rtrim($realBasePath, '/') . '/')) {
+            return;
+        }
+    }
+
+    protocols_json([
+        'error' => 'A pasta vinculada resolve para fora das raízes permitidas.',
+        'code' => 'REALPATH_OUTSIDE_BASE',
+    ], 403);
+}
+
 function protocols_list_folder_items(string $path, int $maxItems): array
 {
     if (!is_dir($path)) protocols_json(['error' => 'A pasta vinculada não existe ou não está acessível neste computador.', 'code' => 'FOLDER_NOT_FOUND', 'path' => $path], 404);
     if (!is_readable($path)) protocols_json(['error' => 'Sem permissão para ler a pasta vinculada.', 'code' => 'FOLDER_NOT_READABLE', 'path' => $path], 403);
+    protocols_assert_real_document_path($path);
     $names = scandir($path);
     if ($names === false) protocols_json(['error' => 'Não foi possível listar os arquivos desta pasta.', 'code' => 'SCAN_FAILED', 'path' => $path], 500);
     $items = [];
@@ -479,9 +501,10 @@ function protocols_list_folder_items(string $path, int $maxItems): array
         if ($a['type'] !== $b['type']) return $a['type'] === 'folder' ? -1 : 1;
         return strcasecmp($a['name'], $b['name']);
     });
-    $truncated = count($items) > $maxItems;
+    $totalFound = count($items);
+    $truncated = $totalFound > $maxItems;
     if ($truncated) $items = array_slice($items, 0, $maxItems);
-    return ['items' => $items, 'truncated' => $truncated];
+    return ['items' => $items, 'truncated' => $truncated, 'total_found' => $totalFound];
 }
 
 function protocols_handle_documents(PDO $pdo, string $action): void
@@ -502,6 +525,7 @@ function protocols_handle_documents(PDO $pdo, string $action): void
         'items' => $items,
         'summary' => [
             'total' => count($items),
+            'total_found' => (int) $result['total_found'],
             'files' => count(array_filter($items, static fn (array $item): bool => $item['type'] === 'file')),
             'folders' => count(array_filter($items, static fn (array $item): bool => $item['type'] === 'folder')),
             'problematic' => count(array_filter($items, static fn (array $item): bool => (bool) $item['problem'])),
@@ -531,7 +555,10 @@ try {
         }
     }
 
-    $resource = preg_replace('/[^a-z_-]/', '', (string) ($_GET['resource'] ?? $_POST['resource'] ?? 'protocolos'));
+    $forcedResource = defined('PROTOCOLOS_FORCE_RESOURCE') ? (string) PROTOCOLOS_FORCE_RESOURCE : '';
+    $resource = $forcedResource !== ''
+        ? $forcedResource
+        : preg_replace('/[^a-z_-]/', '', (string) ($_GET['resource'] ?? $_POST['resource'] ?? 'protocolos'));
     $action = (string) ($_REQUEST['action'] ?? '');
     if ($action === '') protocols_json(['error' => 'Ação não informada'], 400);
 
@@ -545,5 +572,6 @@ try {
         default: protocols_json(['error' => 'Recurso de protocolos não encontrado'], 404);
     }
 } catch (Throwable $error) {
-    protocols_json(['error' => 'Erro interno', 'detail' => $error->getMessage()], 500);
+    error_log('[protocolos_app] ' . $error->getMessage());
+    protocols_json(['error' => 'Erro interno. Tente novamente ou verifique o log do servidor.'], 500);
 }

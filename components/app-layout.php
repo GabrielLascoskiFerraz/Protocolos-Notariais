@@ -69,6 +69,8 @@ function protocolos_render_head(string $title, string $description, ?string $scr
     $baseHref = protocolos_base_href();
     $bodyClass = trim('apollo-product-ui ' . (string) ($options['body_class'] ?? ''));
     $cssPath = 'assets/css/apollo-product.css';
+    $faviconPath = 'assets/img/favicon.svg';
+    $faviconVersion = protocolos_asset_version($faviconPath);
     $extraHead = $options['extra_head'] ?? [];
     if (!is_array($extraHead)) {
         $extraHead = [$extraHead];
@@ -82,9 +84,15 @@ function protocolos_render_head(string $title, string $description, ?string $scr
     <meta name="description" content="<?= htmlspecialchars($description, ENT_QUOTES, 'UTF-8') ?>">
     <title><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></title>
     <base href="<?= htmlspecialchars($baseHref, ENT_QUOTES, 'UTF-8') ?>">
-    <link rel="icon" href="assets/img/logo.png">
+    <link rel="icon" type="image/svg+xml" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="shortcut icon" type="image/svg+xml" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="apple-touch-icon" href="<?= htmlspecialchars($faviconPath . '?v=' . $faviconVersion, ENT_QUOTES, 'UTF-8') ?>">
     <link rel="stylesheet" href="<?= htmlspecialchars($cssPath . '?v=' . protocolos_asset_version($cssPath), ENT_QUOTES, 'UTF-8') ?>">
-    <script>window.BASE_URL = <?= json_encode($baseHref) ?>; window.APOLLO_BASE_URL = window.BASE_URL;</script>
+    <script>
+        window.BASE_URL = <?= json_encode($baseHref) ?>;
+        window.PROTOCOLOS_BASE_URL = window.BASE_URL;
+        window.APOLLO_BASE_URL = window.BASE_URL;
+    </script>
 <?php foreach ($extraHead as $tag): ?>
     <?= $tag . PHP_EOL ?>
 <?php endforeach; ?>

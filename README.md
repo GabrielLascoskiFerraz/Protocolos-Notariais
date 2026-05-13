@@ -1,94 +1,117 @@
 # Protocolos Notariais
 
-Sistema interno de protocolos em formato Kanban, com cadastro, histórico (andamentos), valores adicionais, busca, filtros e sincronização automática.
+Sistema interno para gestão de protocolos notariais em Kanban, com edição em modal, autosave, sincronização colaborativa, geração de PDF da ficha, agenda, leitor de certidões, QR Code e vínculo de pasta de documentos.
 
 ## Requisitos
 
-- PHP 7.4+ (recomendado 8.x)
+- PHP 8.x recomendado
 - MySQL/MariaDB
-- Servidor local (XAMPP/WAMP/LAMP)
+- XAMPP/WAMP/LAMP ou servidor equivalente
+- Navegador moderno
 
-## Estrutura do projeto
+## Instalação
 
+1. Crie o banco `dash-protocolos` ou outro nome de sua preferência.
+2. Importe `schema.sql`.
+3. Configure o banco por variáveis de ambiente ou edite `config/db.php`.
+4. Acesse o projeto pelo navegador, por exemplo:
+
+```text
+http://localhost/Protocolos-Notariais/
 ```
-/htdocs
-├── index.php                 # Board Kanban
-├── gerador-qrcode.php        # Ferramenta de geracao de QR Code
-├── config/
-│   ├── db.php                # Conexao PDO
-│   └── ato-cores.php         # Mapa centralizado de cores dos atos
-├── api/
-│   ├── protocolos.php        # CRUD + busca + status + sync
-│   ├── andamentos.php        # CRUD historico
-│   ├── valores.php           # CRUD valores adicionais
-│   ├── imoveis.php           # CRUD imoveis
-│   ├── tags.php              # cores dos atos (persistidas no DB)
-│   └── ato-cores.php         # Endpoint JSON do mapa de cores fixo
+
+## Variáveis de Ambiente
+
+Todas são opcionais.
+
+```bash
+PROTOCOLOS_DB_HOST=localhost
+PROTOCOLOS_DB_NAME=dash-protocolos
+PROTOCOLOS_DB_USER=root
+PROTOCOLOS_DB_PASS=
+PROTOCOLOS_CALENDAR_ICS_URL=https://calendar.google.com/calendar/ical/...
+PROTOCOLOS_CACHE_DIR=/caminho/fora/do/htdocs/cache
+PROTOCOLOS_DOCUMENTOS_BASE='\\Srv01\d\Disco F\A FAZER - ESCRITURAS'
+PROTOCOLOS_DOCUMENTOS_EXTRA_BASES='/outra/raiz:/mais/uma/raiz'
+PROTOCOLOS_DOCUMENTOS_DEV_BASE='/Users/gabriel/Downloads'
+```
+
+Observação: para testes locais de documentos fora da raiz oficial, use `PROTOCOLOS_DOCUMENTOS_DEV_BASE` ou `PROTOCOLOS_DOCUMENTOS_EXTRA_BASES`.
+
+## Estrutura Atual
+
+```text
+.
+├── index.php                         # Dashboard Kanban de protocolos
+├── calendario.php                    # Consultar Agenda
+├── certidoes.php                     # Leitor de Certidões
+├── gerador-qrcode.php                # Gerador de QR Code
 ├── components/
-│   ├── board.php             # estrutura do kanban (5 colunas)
-│   ├── card.php              # card individual
-│   └── modal.php             # painel do protocolo
+│   └── app-layout.php                # Layout compartilhado/header
+├── apps/
+│   ├── protocolos/
+│   │   ├── api.js                    # Cliente HTTP do módulo de protocolos
+│   │   ├── icons.js                  # Ícones SVG
+│   │   ├── index.js                  # Board, modal, filtros, sync e interações
+│   │   └── pdf.js                    # Impressão/PDF da ficha
+│   ├── agenda/index.js               # UI da agenda
+│   ├── certidoes/index.js            # UI do leitor de certidões
+│   └── qrcode/index.js               # UI do QR Code
+├── functions/
+│   ├── certidoes/index.js            # Extração/estruturação de certidões via PDF.js
+│   └── qrcode/index.js               # Funções puras do QR Code
+├── api/
+│   ├── protocolos_app.php            # API principal consolidada
+│   ├── protocolos.php                # Wrapper compatível para resource=protocolos
+│   ├── andamentos.php                # Wrapper compatível para resource=andamentos
+│   ├── valores.php                   # Wrapper compatível para resource=valores
+│   ├── imoveis.php                   # Wrapper compatível para resource=imoveis
+│   ├── documentos.php                # Wrapper compatível para resource=documentos
+│   ├── calendar.php                  # API/cache do Google Calendar ICS
+│   ├── ato-cores.php                 # Mapa JSON das cores fixas por ato
+│   └── tags.php                      # Endpoint legado de cores persistidas
+├── config/
+│   ├── db.php                        # Conexão PDO
+│   ├── documentos.php                # Raízes permitidas para pastas de documentos
+│   ├── ato-cores.php                 # Mapa fixo de cores dos atos
 ├── assets/
-│   ├── css/
-│   │   └── style.css
-│   ├── img/
-│   │   └── logo.png
-│   └── js/                   # Modulos ES6
-│       ├── base.js           # base URL p/ subpastas
-│       ├── state.js          # estado centralizado da aplicacao
-│       ├── toast.js          # notificacoes
-│       ├── board.js          # drag & drop
-│       ├── modal.js          # abrir/fechar modal + PDF
-│       ├── autosave.js       # autosave dos campos
-│       ├── search.js         # busca + filtros + sync incremental
-│       ├── tags.js           # cores por ato
-│       └── qr-generator.js   # gerador de QR Code
-├── tests/                    # Testes automatizados
-│   ├── php/                  # Runner de integracao em PHP CLI
-│   └── js/                   # Testes com node:test
-└── schema.sql                # Estrutura do banco
+│   ├── css/apollo-product.css        # Camada visual atual baseada no APOLLO
+│   ├── img/logo.png
+│   ├── img/logo-cartorio-mono.svg
+│   ├── js/base.js                    # Helper de base URL usado pela dashboard
+│   ├── js/calendar-alerts.js         # Avisos de agenda na dashboard
+│   └── vendor/                       # PDF.js e QR Code Styling
+├── tests/
+│   ├── js/                           # Testes node:test
+│   └── php/                          # Runner de integração das APIs
+├── schema.sql                        # Estrutura completa do banco
+├── 2026_05_13_add_pasta_documentos.sql
+└── 2026_05_13_add_protocolos_indexes.sql
 ```
 
-## Configuracao
+## Funcionalidades
 
-1) Crie o banco (ex.: `dash-protocolos`).
+- Kanban por status: Para distribuir, Em andamento, Para correção, Lavrados e Arquivados.
+- Coluna de arquivados opcional.
+- Criação rápida de protocolo.
+- Drag and drop entre colunas.
+- Autosave dos campos da modal.
+- Filtros por busca, ato, digitador, etiqueta e urgência.
+- Tags personalizadas.
+- Urgência no card e no PDF.
+- Andamentos, imóveis e valores adicionais dinâmicos.
+- Vínculo de pasta de documentos e listagem somente leitura dos arquivos.
+- Detecção visual de arquivos problemáticos na pasta vinculada.
+- Geração de PDF da ficha.
+- Leitor de certidões via PDF.js.
+- Gerador de QR Code com marca central.
+- Agenda via Google Calendar ICS com cache de 30 minutos.
+- Aviso na dashboard para novos eventos do dia.
+- Sincronização colaborativa por polling a cada 8 segundos.
 
-2) Importe o `schema.sql` no seu banco.
+## Banco de Dados
 
-3) Configure `config/db.php`:
-
-```php
-$host = 'localhost';
-$db   = 'dash-protocolos';
-$user = 'root';
-$pass = '';
-```
-
-4) Coloque o projeto dentro do `htdocs` do XAMPP e acesse no navegador:
-
-```
-http://localhost/protocolos
-```
-
-## Funcionalidades principais
-
-- Board Kanban por status
-- Criacao e edicao rapida de protocolos
-- Drag & drop entre colunas (atualiza status)
-- Modal com campos completos, valores adicionais e andamentos
-- Autosave em tempo real
-- Busca global
-- Filtros por Ato, Digitador, Tag personalizada e Urgentes
-- Coluna Arquivados oculta por padrao (botao na topbar)
-- Tags personalizadas por protocolo
-- PDF da ficha (A4)
-- Gerador interno de QR Code com download em PNG
-- Sincronizacao incremental (por `updated_at`)
-- Paginação por coluna (lazy-load)
-
-## Banco de dados
-
-Tabelas principais (veja detalhes em `schema.sql`):
+Tabelas principais:
 
 - `protocolos`
 - `protocolos_andamentos`
@@ -97,321 +120,128 @@ Tabelas principais (veja detalhes em `schema.sql`):
 - `protocolos_tags`
 - `vw_protocolos_board`
 
-Campos importantes:
+Campos relevantes em `protocolos`:
 
 - `status`: `PARA_DISTRIBUIR`, `EM_ANDAMENTO`, `PARA_CORRECAO`, `LAVRADOS`, `ARQUIVADOS`
-- `urgente`: `0/1`
-- `deletado`: `0/1`
-- `tag_custom`: tag personalizada
+- `urgente`: `0` ou `1`
+- `deletado`: soft delete
+- `tag_custom`: etiqueta personalizada
+- `pasta_documentos`: caminho UNC ou local permitido
 
-## Referencia da API
+Migrações avulsas:
 
-Todas as respostas sao JSON (`Content-Type: application/json; charset=utf-8`).
-O parametro `action` na query string define a operacao.
-
----
-
-### `api/protocolos.php` — Protocolos
-
-#### `action=create` — Criar protocolo
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | nenhum |
-| Resposta | `{ "success": true, "id": 42 }` |
-
-Cria um protocolo vazio com status `PARA_DISTRIBUIR`.
-
-#### `action=get` — Buscar protocolo
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `id` (int, obrigatorio) |
-| Resposta | Objeto com todos os campos do protocolo + `tag_cor` e `total_valores` |
-
-Exemplo de resposta:
-
-```json
-{
-  "id": 1,
-  "ficha": 123,
-  "ato": "Compra e venda",
-  "digitador": "Maria",
-  "apresentante": "Joao",
-  "data_apresentacao": "2025-03-15",
-  "contato": "(11) 99999-0000",
-  "outorgantes": "Fulano",
-  "outorgados": "Beltrano",
-  "valor_ato": "1500.00",
-  "status": "EM_ANDAMENTO",
-  "observacoes": "",
-  "urgente": 0,
-  "tag_custom": "FAZER ITBI",
-  "tag_cor": "#4f46e5",
-  "total_valores": "350.00",
-  "created_at": "2025-03-15 10:30:00",
-  "updated_at": "2025-03-15 14:22:00"
-}
+```sql
+2026_05_13_add_pasta_documentos.sql
+2026_05_13_add_protocolos_indexes.sql
 ```
 
-#### `action=search` — Busca paginada
+Para uma instalação nova, basta importar `schema.sql`.
 
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `q` (texto), `ato`, `digitador`, `urgente` (0/1), `tag_custom`, `status`, `limit` (default 50), `offset` (default 0) |
-| Resposta | `{ "items": [...], "total": 123, "server_now": "2025-03-15 14:22:00" }` |
+## API Principal
 
-A busca textual (`q`) pesquisa nos campos: `ficha`, `digitador`, `apresentante`, `outorgantes`, `outorgados`, `ato`.
+Endpoint principal:
 
-#### `action=update` — Atualizar campo
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int), `field` (string), `value` (string) |
-| Resposta | `{ "success": true }` |
-
-Campos permitidos: `ficha`, `ato`, `digitador`, `apresentante`, `data_apresentacao`, `contato`, `outorgantes`, `outorgados`, `matricula`, `area`, `valor_ato`, `observacoes`, `urgente`, `tag_custom`.
-
-#### `action=status` — Alterar status
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int), `status` (enum) |
-| Resposta | `{ "success": true }` |
-
-Valores validos para status: `PARA_DISTRIBUIR`, `EM_ANDAMENTO`, `PARA_CORRECAO`, `LAVRADOS`, `ARQUIVADOS`.
-
-#### `action=delete` — Excluir protocolo
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int) |
-| Resposta | `{ "success": true }` |
-
-Executa soft-delete (marca `deletado = 1`). O registro permanece no banco.
-
-#### `action=changes` — Sync incremental
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `since` (timestamp `YYYY-MM-DD HH:MM:SS`) |
-| Resposta | `{ "items": [...], "server_now": "..." }` |
-
-Retorna apenas protocolos modificados desde `since`. Registros removidos por soft-delete continuam vindo em `items`, com `deletado = 1`, para que o frontend remova o card localmente. Usado pelo auto-sync do frontend.
-
----
-
-### `api/andamentos.php` — Historico
-
-#### `action=list`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `protocolo_id` (int) |
-| Resposta | Array de andamentos `[{ "id", "descricao", "created_at" }, ...]` |
-
-#### `action=create`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `protocolo_id` (int), `descricao` (string) |
-| Resposta | `{ "success": true, "id": 5 }` |
-
-Ao criar um andamento, o campo `updated_at` do protocolo pai tambem e atualizado (para sync incremental).
-
-#### `action=update`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int), `descricao` (string) |
-| Resposta | `{ "success": true }` |
-
-#### `action=delete`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int) |
-| Resposta | `{ "success": true }` |
-
----
-
-### `api/valores.php` — Valores adicionais
-
-#### `action=list`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `protocolo_id` (int) |
-| Resposta | Array de valores `[{ "id", "descricao", "valor", "created_at" }, ...]` |
-
-#### `action=create`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `protocolo_id` (int), `descricao` (string), `valor` (decimal) |
-| Resposta | `{ "success": true, "id": 3 }` |
-
-#### `action=update`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int), `descricao` (string), `valor` (decimal) |
-| Resposta | `{ "success": true, "total": "1250.00" }` |
-
-O campo `total` retorna a soma de todos os valores adicionais do protocolo.
-
-#### `action=delete`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int) |
-| Resposta | `{ "success": true }` |
-
----
-
-### `api/imoveis.php` — Imoveis
-
-#### `action=list`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | `protocolo_id` (int) |
-| Resposta | Array de imoveis `[{ "id", "matricula", "area", "created_at" }, ...]` |
-
-#### `action=create`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `protocolo_id` (int), `matricula` (string), `area` (string) |
-| Resposta | `{ "success": true, "id": 7 }` |
-
-#### `action=update`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int), `matricula` (string), `area` (string) |
-| Resposta | `{ "success": true }` |
-
-#### `action=delete`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `id` (int) |
-| Resposta | `{ "success": true }` |
-
----
-
-### `api/tags.php` — Cores dos atos
-
-#### `action=list`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | nenhum |
-| Resposta | Array `[{ "ato": "Compra e venda", "cor": "#4f46e5" }, ...]` |
-
-#### `action=create`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `ato` (string), `cor` (hex, ex: `#ff0000`) |
-| Resposta | `{ "success": true }` |
-
-Usa `ON DUPLICATE KEY UPDATE`: se o ato ja existe, atualiza a cor.
-
-#### `action=update`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `ato` (string), `cor` (hex) |
-| Resposta | `{ "success": true }` |
-
-#### `action=delete`
-
-| Item | Valor |
-|------|-------|
-| Metodo | `POST` |
-| Parametros | `ato` (string) |
-| Resposta | `{ "success": true }` |
-
----
-
-### `api/ato-cores.php` — Mapa de cores fixo
-
-| Item | Valor |
-|------|-------|
-| Metodo | `GET` |
-| Parametros | nenhum |
-| Resposta | Objeto JSON `{ "Compra e venda": "#4f46e5", ... }` |
-
-Retorna o mapa estatico de cores definido em `config/ato-cores.php`. Usado pelo frontend para colorir cards sem depender do banco.
-
----
-
-### Codigos de erro
-
-As APIs usam JSON como formato padrao de resposta e retornam os seguintes codigos HTTP em caso de erro:
-
-| Codigo | Significado |
-|--------|-------------|
-| `400` | Parametros obrigatorios ausentes ou invalidos |
-| `404` | Registro nao encontrado |
-| `405` | Metodo HTTP incorreto (ex: GET onde espera POST) |
-| `500` | Erro interno do servidor |
-
-Formato da resposta de erro:
-
-```json
-{ "error": "Descricao do erro" }
+```text
+api/protocolos_app.php
 ```
+
+Parâmetros comuns:
+
+- `resource`: `protocolos`, `andamentos`, `valores`, `imoveis`, `documentos`, `metadata`
+- `action`: operação desejada
+
+Os arquivos `api/protocolos.php`, `api/andamentos.php`, `api/valores.php`, `api/imoveis.php` e `api/documentos.php` são wrappers de compatibilidade para a API principal.
+
+### Protocolos
+
+```text
+GET  api/protocolos_app.php?resource=protocolos&action=search
+GET  api/protocolos_app.php?resource=protocolos&action=get&id=1
+GET  api/protocolos_app.php?resource=protocolos&action=changes&since=YYYY-MM-DD HH:MM:SS
+POST api/protocolos_app.php?resource=protocolos&action=create
+POST api/protocolos_app.php?resource=protocolos&action=update
+POST api/protocolos_app.php?resource=protocolos&action=status
+POST api/protocolos_app.php?resource=protocolos&action=delete
+```
+
+### Sublistas
+
+```text
+resource=andamentos action=list|create|update|delete
+resource=valores    action=list|create|update|delete
+resource=imoveis    action=list|create|update|delete
+resource=documentos action=list
+resource=metadata   action=list
+```
+
+Todas as APIs retornam JSON. Erros internos não expõem detalhes técnicos ao navegador; detalhes devem ser consultados no log do servidor.
+
+## Documentos Vinculados
+
+A pasta só é listada se estiver dentro das raízes permitidas em `config/documentos.php`.
+
+Raiz padrão:
+
+```text
+\\Srv01\d\Disco F\A FAZER - ESCRITURAS
+```
+
+Arquivos sinalizados visualmente como problemáticos:
+
+- `.download`
+- `.crdownload`
+- `.tmp`
+- arquivos sem extensão
+- `Thumbs.db`
+- `.exe`
+- `.bat`
+
+O sistema não apaga, move ou renomeia arquivos.
+
+## Agenda
+
+`api/calendar.php` baixa o ICS configurado, transforma em JSON e mantém cache por 30 minutos.
+
+Por padrão, o cache fica fora do `htdocs`, em:
+
+```text
+/tmp/protocolos-notariais-cache
+```
+
+Use `PROTOCOLOS_CACHE_DIR` para definir outro local.
 
 ## Testes
 
-### PHP (integracao)
+### Lint PHP
 
-Runner em PHP CLI, sem PHPUnit:
+```bash
+find . -path './assets/vendor' -prune -o -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -n1 /Applications/XAMPP/xamppfiles/bin/php -l
+```
+
+### Syntax check JS
+
+```bash
+find apps functions assets/js -name '*.js' -print0 | xargs -0 -n1 node --check
+```
+
+### Testes JS
+
+```bash
+node --test tests/js/*.test.js
+```
+
+### Teste de integração PHP
+
+Requer servidor e banco ativos.
 
 ```bash
 /Applications/XAMPP/xamppfiles/bin/php tests/php/ApiTestRunner.php http://localhost/Protocolos-Notariais/
 ```
 
-### JavaScript
+## Observações de Manutenção
 
-Testes usando o runner nativo do Node (`node:test`):
-
-```bash
-node --test tests/js/helpers.test.js tests/js/ato-cores.test.js
-```
-
-## Sincronizacao e desempenho
-
-- O front faz **sync incremental** a cada 8 segundos (`SYNC_INTERVAL_MS`).
-- O carregamento é paginado por coluna (`PAGE_SIZE`).
-- Quando filtros estão ativos, o auto-sync é desativado para evitar “pisca”.
-
-## Observacoes
-
-- O sistema foi projetado para uso interno com poucos usuarios simultaneos.
-- Em ambientes com grande volume de dados, ajuste `PAGE_SIZE` e `SYNC_INTERVAL_MS`.
+- O frontend ativo está em `apps/` e `functions/`.
+- O CSS ativo é `assets/css/apollo-product.css`.
+- A API ativa é `api/protocolos_app.php`.
+- Evite recriar módulos em `assets/js`; essa pasta hoje contém apenas helpers globais pontuais.
+- Novas alterações de banco devem ser feitas por arquivo SQL versionado e refletidas em `schema.sql`.

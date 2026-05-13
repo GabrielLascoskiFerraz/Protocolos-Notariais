@@ -4,8 +4,10 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 
-$calendarUrl = 'https://calendar.google.com/calendar/ical/2cartorio.irati%40gmail.com/private-d2973bdcdead518993031b26f88c612a/basic.ics';
-$cacheDir = dirname(__DIR__) . '/cache';
+$calendarUrl = getenv('PROTOCOLOS_CALENDAR_ICS_URL')
+    ?: 'https://calendar.google.com/calendar/ical/2cartorio.irati%40gmail.com/private-d2973bdcdead518993031b26f88c612a/basic.ics';
+$cacheDir = getenv('PROTOCOLOS_CACHE_DIR')
+    ?: rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'protocolos-notariais-cache';
 $cacheFile = $cacheDir . '/calendar-cache.json';
 $cacheTtl = 1800;
 $timezone = new DateTimeZone('America/Sao_Paulo');
@@ -351,10 +353,11 @@ function expandEvents(array $events, DateTimeZone $timezone): array
 }
 
 try {
+    $forceRefresh = (string)($_GET['refresh'] ?? '') === '1';
     $cached = readCachedCalendar($cacheFile);
     $fresh = $cached && isset($cached['cached_at']) && (time() - (int) $cached['cached_at'] < $cacheTtl);
 
-    if ($fresh) {
+    if ($fresh && !$forceRefresh) {
         $cached['cache_status'] = 'fresh';
         jsonResponse($cached);
     }
@@ -388,7 +391,6 @@ try {
     jsonResponse([
         'success' => false,
         'error' => 'Não foi possível carregar o calendário.',
-        'detail' => $error->getMessage(),
         'events' => [],
     ], 500);
 }

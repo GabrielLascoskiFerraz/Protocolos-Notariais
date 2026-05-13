@@ -18,13 +18,13 @@ $extraBasePaths = array_filter(array_map(
     explode(PATH_SEPARATOR, (string) (getenv('PROTOCOLOS_DOCUMENTOS_EXTRA_BASES') ?: ''))
 ));
 
-$localTestBasePath = '/Users/gabriel/Downloads';
+$localDevBasePath = trim((string) (getenv('PROTOCOLOS_DOCUMENTOS_DEV_BASE') ?: ''));
 $projectTestBasePath = dirname(__DIR__) . '/documentos-teste';
 
 $allowedBasePaths = array_values(array_unique(array_filter(array_merge(
     [$defaultBasePath],
     $extraBasePaths,
-    [$localTestBasePath, $projectTestBasePath]
+    [$localDevBasePath, $projectTestBasePath]
 ))));
 
 return [

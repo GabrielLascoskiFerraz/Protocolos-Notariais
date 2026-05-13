@@ -1,6 +1,6 @@
 import * as pdfjsLib from "../../assets/vendor/pdfjs/pdf.js";
 
-const base = (window.APOLLO_BASE_URL || window.BASE_URL || "./").replace(/\\/g, "/");
+const base = (window.PROTOCOLOS_BASE_URL || window.APOLLO_BASE_URL || window.BASE_URL || "./").replace(/\\/g, "/");
 const normalizedBase = base.endsWith("/") ? base : `${base}/`;
 
 if (typeof Response !== "undefined" && !Response.prototype.bytes) {

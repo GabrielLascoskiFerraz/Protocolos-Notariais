@@ -1,4 +1,4 @@
-const base = (window.APOLLO_BASE_URL || window.BASE_URL || "./").replace(/\\/g, "/");
+const base = (window.PROTOCOLOS_BASE_URL || window.APOLLO_BASE_URL || window.BASE_URL || "./").replace(/\\/g, "/");
 const normalizedBase = base.endsWith("/") ? base : `${base}/`;
 
 export function apiUrl(path) {

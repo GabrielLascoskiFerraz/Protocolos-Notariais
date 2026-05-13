@@ -2,8 +2,7 @@
 /**
  * Mapa centralizado de cores dos atos notariais.
  *
- * Usado tanto pelo PHP (card.php) quanto exportado como JSON
- * para o JavaScript consumir via api/ato-cores.php.
+ * Usado pelo PHP para injetar metadados e pelo board em apps/protocolos.
  *
  * Para adicionar ou alterar uma cor basta editar este arquivo.
  */

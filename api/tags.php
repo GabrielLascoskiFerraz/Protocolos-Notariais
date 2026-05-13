@@ -109,9 +109,9 @@ try {
     exit;
 
 } catch (Throwable $e) {
+    error_log('[tags] ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'error' => 'Erro interno',
-        'detail' => $e->getMessage()
     ]);
 }

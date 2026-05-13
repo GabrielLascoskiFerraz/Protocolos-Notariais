@@ -31,7 +31,7 @@ function ensureQrLibrary() {
         return true;
     }
 
-    setFeedback('Nao foi possivel carregar a biblioteca de QR Code. Verifique a conexao com a internet e recarregue a pagina.', 'error');
+    setFeedback('Não foi possível carregar a biblioteca de QR Code. Verifique os arquivos do projeto e recarregue a página.', 'error');
     return false;
 }
 
@@ -42,7 +42,7 @@ async function ensureLogoDataUri() {
 
     const response = await fetch(logoPath, { cache: 'no-store' });
     if (!response.ok) {
-        throw new Error('Nao foi possivel carregar a marca central do QR Code.');
+        throw new Error('Não foi possível carregar a marca central do QR Code.');
     }
 
     const svg = await response.text();
@@ -94,7 +94,7 @@ async function renderQr() {
     try {
         new URL(normalizedLink);
     } catch (error) {
-        resetPreview('O link informado nao parece valido.', 'error');
+        resetPreview('O link informado não parece válido.', 'error');
         return;
     }
 
@@ -121,7 +121,7 @@ async function renderQr() {
         hasRendered = true;
         setFeedback('QR Code gerado com sucesso.', 'success');
     } catch (error) {
-        resetPreview(error.message || 'Nao foi possivel gerar o QR Code.', 'error');
+        resetPreview(error.message || 'Não foi possível gerar o QR Code.', 'error');
     }
 }
 

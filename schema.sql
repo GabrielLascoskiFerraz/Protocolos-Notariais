@@ -140,7 +140,7 @@ CREATE TABLE `vw_protocolos_board` (
 --
 DROP TABLE IF EXISTS `vw_protocolos_board`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_protocolos_board`  AS SELECT `p`.`id` AS `id`, `p`.`ficha` AS `ficha`, `p`.`ato` AS `ato`, `p`.`digitador` AS `digitador`, `p`.`apresentante` AS `apresentante`, `p`.`data_apresentacao` AS `data_apresentacao`, `p`.`contato` AS `contato`, `p`.`outorgantes` AS `outorgantes`, `p`.`outorgados` AS `outorgados`, `p`.`matricula` AS `matricula`, `p`.`area` AS `area`, `p`.`valor_ato` AS `valor_ato`, `p`.`status` AS `status`, `p`.`observacoes` AS `observacoes`, `p`.`pasta_documentos` AS `pasta_documentos`, `p`.`created_at` AS `created_at`, `p`.`updated_at` AS `updated_at`, `p`.`urgente` AS `urgente`, `p`.`deletado` AS `deletado`, `p`.`tag_custom` AS `tag_custom`, coalesce(sum(`v`.`valor`),0) AS `total_valores` FROM (`protocolos` `p` left join `protocolos_valores` `v` on(`v`.`protocolo_id` = `p`.`id`)) GROUP BY `p`.`id` ;
+CREATE VIEW `vw_protocolos_board` AS SELECT `p`.`id` AS `id`, `p`.`ficha` AS `ficha`, `p`.`ato` AS `ato`, `p`.`digitador` AS `digitador`, `p`.`apresentante` AS `apresentante`, `p`.`data_apresentacao` AS `data_apresentacao`, `p`.`contato` AS `contato`, `p`.`outorgantes` AS `outorgantes`, `p`.`outorgados` AS `outorgados`, `p`.`matricula` AS `matricula`, `p`.`area` AS `area`, `p`.`valor_ato` AS `valor_ato`, `p`.`status` AS `status`, `p`.`observacoes` AS `observacoes`, `p`.`pasta_documentos` AS `pasta_documentos`, `p`.`created_at` AS `created_at`, `p`.`updated_at` AS `updated_at`, `p`.`urgente` AS `urgente`, `p`.`deletado` AS `deletado`, `p`.`tag_custom` AS `tag_custom`, coalesce(sum(`v`.`valor`),0) AS `total_valores` FROM (`protocolos` `p` left join `protocolos_valores` `v` on(`v`.`protocolo_id` = `p`.`id`)) GROUP BY `p`.`id` ;
 
 --
 -- Índices para tabelas despejadas
@@ -154,7 +154,12 @@ ALTER TABLE `protocolos`
   ADD KEY `idx_ficha` (`ficha`),
   ADD KEY `idx_ato` (`ato`),
   ADD KEY `idx_digitador` (`digitador`),
-  ADD KEY `idx_apresentante` (`apresentante`);
+  ADD KEY `idx_apresentante` (`apresentante`),
+  ADD KEY `idx_board_status` (`deletado`,`status`,`urgente`,`id`),
+  ADD KEY `idx_updated_at` (`updated_at`),
+  ADD KEY `idx_filter_ato` (`deletado`,`ato`),
+  ADD KEY `idx_filter_digitador` (`deletado`,`digitador`),
+  ADD KEY `idx_filter_tag_custom` (`deletado`,`tag_custom`);
 
 --
 -- Índices de tabela `protocolos_andamentos`
