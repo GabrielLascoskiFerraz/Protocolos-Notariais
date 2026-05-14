@@ -12,6 +12,8 @@ const personalForm = document.getElementById("settings-personal-form");
 const personalStatus = document.getElementById("settings-personal-status");
 const personalReset = document.getElementById("settings-personal-reset");
 const fontScaleLabel = document.getElementById("settings-font-scale-label");
+const densityPreview = document.querySelector("[data-settings-density-preview]");
+const densityPreviewLabel = document.getElementById("settings-density-preview-label");
 let personalStatusTimer = 0;
 
 const defaultPreferences = {
@@ -75,6 +77,20 @@ function updateFontScaleLabel(value) {
     fontScaleLabel.textContent = `${Math.round(Number(value || 1) * 100)}%`;
 }
 
+function densityLabel(density) {
+    const labels = {
+        compact: "Componentes mais próximos para caber mais informação.",
+        comfortable: "Espaçamento equilibrado para uso diário.",
+        spacious: "Componentes maiores e mais respiro visual."
+    };
+    return labels[density] || labels.comfortable;
+}
+
+function updateDensityPreview(density) {
+    if (densityPreview) densityPreview.dataset.settingsDensityPreview = density || "comfortable";
+    if (densityPreviewLabel) densityPreviewLabel.textContent = densityLabel(density);
+}
+
 function setPersonalStatus(message, mode = "success") {
     window.clearTimeout(personalStatusTimer);
     setStatus(personalStatus, message, mode);
@@ -99,6 +115,7 @@ function fillPersonalForm(preferences = loadUserPreferences()) {
     personalForm.elements.health_type_stretch.checked = Boolean(preferences.health.types.stretch);
     personalForm.elements.health_type_hydration.checked = Boolean(preferences.health.types.hydration);
     updateFontScaleLabel(preferences.fontScale);
+    updateDensityPreview(preferences.density);
 }
 
 function preferencesFromForm() {
@@ -175,6 +192,9 @@ personalForm?.addEventListener("input", (event) => {
 personalForm?.addEventListener("change", (event) => {
     if (event.target?.name === "fontScale") {
         updateFontScaleLabel(event.target.value);
+    }
+    if (event.target?.name === "density") {
+        updateDensityPreview(event.target.value);
     }
     savePersonalPreferencesFromForm(event);
 });

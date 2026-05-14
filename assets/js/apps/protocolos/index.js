@@ -498,7 +498,7 @@ function renderCard(item, cardIndex = 0, columnIndex = 0) {
     const id = String(item.id || "");
     const animationClass = state.freshCardIds.has(id) ? " is-card-entering" : "";
     const flightClass = state.activeCardFlights.has(id) ? " is-card-flight-target" : "";
-    const openingDelay = Math.min(620, 140 + (Number(columnIndex) || 0) * 70 + (Number(cardIndex) || 0) * 18);
+    const openingDelay = Math.min(180, 36 + (Number(columnIndex) || 0) * 22 + Math.min(Number(cardIndex) || 0, 12) * 8);
 
     return `
         <article class="protocol-card${urgent ? " is-urgent" : ""}${animationClass}${flightClass}" draggable="true" data-protocol-id="${escapeHtml(item.id)}" data-status="${escapeHtml(item.status)}" style="--tag-color:${escapeHtml(color)};--protocol-card-index:${escapeHtml(cardIndex)};--protocol-card-delay:${escapeHtml(openingDelay)}ms">
@@ -580,9 +580,9 @@ function renderColumn(status, label, columnIndex = 0, options = {}) {
         ? " is-column-revealed"
         : "";
     const entranceClass = options.entrance ? " is-column-entering" : "";
-    const columnDelay = 120 + (Number(columnIndex) || 0) * 80;
-    const columnHeadDelay = columnDelay + 90;
-    const columnSoftDelay = columnDelay + 140;
+    const columnDelay = 40 + (Number(columnIndex) || 0) * 28;
+    const columnHeadDelay = columnDelay + 35;
+    const columnSoftDelay = columnDelay + 70;
     const count = columnCount(status);
     return `
         <section class="protocol-column protocol-column-${status.toLowerCase().replace(/_/g, "-")}${transitionClass}${entranceClass}" data-status="${status}" style="--protocol-column-index:${escapeHtml(columnIndex)};--protocol-column-delay:${escapeHtml(columnDelay)}ms;--protocol-column-head-delay:${escapeHtml(columnHeadDelay)}ms;--protocol-column-soft-delay:${escapeHtml(columnSoftDelay)}ms">
@@ -857,11 +857,12 @@ function renderBoard(options = {}) {
     dom.board.classList.toggle("is-loading", state.loadingBoard);
     dom.board.classList.toggle("is-showing-archived", state.showArchived);
     dom.board.classList.toggle("is-opening-board", entrance);
+    dom.board.setAttribute("aria-busy", state.loadingBoard ? "true" : "false");
     window.clearTimeout(state.boardEntranceTimer);
     if (entrance) {
         state.boardEntranceTimer = window.setTimeout(() => {
             dom.board.classList.remove("is-opening-board");
-        }, 1280);
+        }, 620);
     }
     if (state.lastError) {
         dom.board.innerHTML = `<section class="surface protocols-empty"><strong>Não foi possível carregar os protocolos</strong><p>${escapeHtml(state.lastError)}</p></section>`;
@@ -1202,8 +1203,10 @@ async function loadBoard(options = {}) {
             refreshLoaded,
             silent: softRefresh
         })));
-        if (!wasReady || animateResults) {
+        if (animateResults) {
             markVisibleCardsAsFresh();
+        } else if (!wasReady) {
+            state.freshCardIds.clear();
         } else {
             markStatusCardsAsFresh(freshStatuses);
         }

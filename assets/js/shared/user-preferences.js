@@ -37,6 +37,9 @@ const HEALTH_MESSAGES = {
 };
 
 let healthTimer = 0;
+const preferencesRuntime = typeof window !== "undefined"
+    ? (window.__protocolosPreferencesRuntime ||= { initialized: false, welcomeOpen: false })
+    : { initialized: false, welcomeOpen: false };
 
 function clamp(value, min, max) {
     const number = Number(value);
@@ -408,7 +411,10 @@ function updateWelcomeDensityPreview(modal, density) {
 function closeWelcomeModal(modal) {
     if (!modal || modal.classList.contains("is-leaving")) return;
     modal.classList.add("is-leaving");
-    window.setTimeout(() => modal.remove(), 180);
+    window.setTimeout(() => {
+        modal.remove();
+        preferencesRuntime.welcomeOpen = false;
+    }, 180);
 }
 
 function preferencesFromWelcomeForm(form, browserNotifications = null) {
@@ -432,6 +438,8 @@ function preferencesFromWelcomeForm(form, browserNotifications = null) {
 function maybeShowWelcomeModal() {
     if (readFlag(ONBOARDING_KEY)) return;
     if (!document.body) return;
+    if (preferencesRuntime.welcomeOpen || document.querySelector(".protocol-welcome")) return;
+    preferencesRuntime.welcomeOpen = true;
 
     const initialPreferences = loadUserPreferences();
     initialPreferences.health.enabled = true;
@@ -480,40 +488,47 @@ function maybeShowWelcomeModal() {
     window.setTimeout(() => modal.classList.add("is-visible"), 20);
 }
 
-applyUserPreferences();
-startHealthLoop();
+function initializePreferencesRuntime() {
+    if (preferencesRuntime.initialized) return;
+    preferencesRuntime.initialized = true;
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", maybeShowWelcomeModal, { once: true });
-} else {
-    maybeShowWelcomeModal();
-}
-
-window.addEventListener("storage", (event) => {
-    if (event.key === STORAGE_KEY) {
-        applyUserPreferences();
-        startHealthLoop();
-    }
-});
-
-window.addEventListener("protocolos:preferences", () => {
+    applyUserPreferences();
     startHealthLoop();
-});
 
-const systemTheme = systemThemeMedia();
-const handleSystemThemeChange = () => {
-    const preferences = loadUserPreferences();
-    if (preferences.theme === "system") applyUserPreferences(preferences);
-};
-if (systemTheme) {
-    if (typeof systemTheme.addEventListener === "function") {
-        systemTheme.addEventListener("change", handleSystemThemeChange);
-    } else if (typeof systemTheme.addListener === "function") {
-        systemTheme.addListener(handleSystemThemeChange);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", maybeShowWelcomeModal, { once: true });
+    } else {
+        maybeShowWelcomeModal();
+    }
+
+    window.addEventListener("storage", (event) => {
+        if (event.key === STORAGE_KEY) {
+            applyUserPreferences();
+            startHealthLoop();
+        }
+    });
+
+    window.addEventListener("protocolos:preferences", () => {
+        startHealthLoop();
+    });
+
+    const systemTheme = systemThemeMedia();
+    const handleSystemThemeChange = () => {
+        const preferences = loadUserPreferences();
+        if (preferences.theme === "system") applyUserPreferences(preferences);
+    };
+    if (systemTheme) {
+        if (typeof systemTheme.addEventListener === "function") {
+            systemTheme.addEventListener("change", handleSystemThemeChange);
+        } else if (typeof systemTheme.addListener === "function") {
+            systemTheme.addListener(handleSystemThemeChange);
+        }
     }
 }
 
-window.ProtocolosPreferences = {
+initializePreferencesRuntime();
+
+if (typeof window !== "undefined") window.ProtocolosPreferences = {
     load: loadUserPreferences,
     save: saveUserPreferences,
     update: updateUserPreferences,

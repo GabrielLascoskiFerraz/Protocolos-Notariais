@@ -13,6 +13,56 @@ require __DIR__ . '/../views/app-layout.php';
 $metadata = protocolos_build_board_metadata($pdo);
 $showDocumentsFeature = false;
 
+$initialBoardColumns = [
+    ['status' => 'PARA_DISTRIBUIR', 'label' => 'Para distribuir', 'icon' => 'inbox'],
+    ['status' => 'EM_ANDAMENTO', 'label' => 'Em andamento', 'icon' => 'progress'],
+    ['status' => 'PARA_CORRECAO', 'label' => 'Para correção', 'icon' => 'correction'],
+    ['status' => 'LAVRADOS', 'label' => 'Lavrados', 'icon' => 'done'],
+];
+
+function protocolos_initial_skeleton_card(): string
+{
+    return '
+        <article class="protocol-card protocol-skeleton-card" aria-hidden="true">
+            <div class="protocol-skeleton-line is-pill"></div>
+            <div class="protocol-skeleton-line is-title"></div>
+            <div class="protocol-skeleton-grid">
+                <div class="protocol-skeleton-line"></div>
+                <div class="protocol-skeleton-line"></div>
+                <div class="protocol-skeleton-line"></div>
+            </div>
+        </article>
+    ';
+}
+
+function protocolos_initial_board_skeleton(array $columns): string
+{
+    ob_start();
+    foreach ($columns as $column):
+        $status = (string) $column['status'];
+        $label = (string) $column['label'];
+        $icon = (string) $column['icon'];
+        $classSuffix = strtolower(str_replace('_', '-', $status));
+?>
+        <section class="protocol-column protocol-column-<?= htmlspecialchars($classSuffix, ENT_QUOTES, 'UTF-8') ?>" data-status="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">
+            <header>
+                <div>
+                    <span class="protocol-column-title"><span data-protocol-icon="<?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></span><span class="eyebrow"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span></span>
+                    <strong class="protocol-column-count" data-column-count-status="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>">0</strong>
+                </div>
+            </header>
+            <div class="protocol-column-cards" data-drop-status="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>" data-scroll-status="<?= htmlspecialchars($status, ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?>">
+                <?= protocolos_initial_skeleton_card() ?>
+                <?= protocolos_initial_skeleton_card() ?>
+                <?= protocolos_initial_skeleton_card() ?>
+                <?= protocolos_initial_skeleton_card() ?>
+            </div>
+        </section>
+<?php
+    endforeach;
+    return (string) ob_get_clean();
+}
+
 $scriptPath = 'assets/js/apps/protocolos/index.js';
 $scriptVersion = protocolos_asset_version($scriptPath);
 
@@ -103,7 +153,9 @@ protocolos_render_app_start(
             <div class="protocols-active-filters" id="protocols-active-filters" aria-live="polite"></div>
         </section>
 
-        <section class="protocols-board" id="protocols-board" aria-live="polite"></section>
+        <section class="protocols-board" id="protocols-board" aria-live="polite" aria-busy="true">
+            <?= protocolos_initial_board_skeleton($initialBoardColumns) ?>
+        </section>
     </section>
 
     <dialog class="protocols-dialog" id="protocols-dialog">
