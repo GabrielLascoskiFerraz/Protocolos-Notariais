@@ -6048,6 +6048,34 @@ color: var(--muted);
     animation-delay: var(--protocol-column-soft-delay, 260ms);
 }
 
+.protocols-board.is-hydrating-board {
+    animation: protocol-board-handoff 360ms var(--protocolos-interaction-ease) both;
+}
+
+.protocols-board.is-hydrating-board .protocol-column {
+    animation: protocol-hydrate-column-in 360ms var(--protocolos-interaction-ease) both;
+    animation-delay: var(--protocol-column-delay, 0ms);
+}
+
+.protocols-board.is-hydrating-board .protocol-column > header {
+    animation: protocol-hydrate-header-in 280ms var(--protocolos-interaction-ease) both;
+    animation-delay: var(--protocol-column-head-delay, 45ms);
+}
+
+.protocols-board.is-hydrating-board .protocol-card {
+    transform-origin: center top;
+    animation: protocol-hydrate-card-in 380ms var(--protocolos-interaction-ease) both;
+    animation-delay: var(--protocol-card-delay, 40ms);
+    will-change: opacity, transform, filter;
+}
+
+.protocols-board.is-hydrating-board .protocol-empty-column,
+.protocols-board.is-hydrating-board .protocol-column-more,
+.protocols-board.is-hydrating-board .protocol-column-loader {
+    animation: protocol-hydrate-soft-in 280ms var(--protocolos-interaction-ease) both;
+    animation-delay: var(--protocol-column-soft-delay, 70ms);
+}
+
 @keyframes protocol-dashboard-title-in {
     from {
         opacity: 0;
@@ -6058,6 +6086,63 @@ color: var(--muted);
         opacity: 1;
         filter: blur(0);
         transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes protocol-board-handoff {
+    from {
+        filter: saturate(0.96);
+    }
+    to {
+        filter: saturate(1);
+    }
+}
+
+@keyframes protocol-hydrate-column-in {
+    from {
+        opacity: 0.82;
+        transform: translateY(8px) scale(0.996);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes protocol-hydrate-header-in {
+    from {
+        opacity: 0.74;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes protocol-hydrate-card-in {
+    from {
+        opacity: 0.48;
+        transform: translateY(10px) scale(0.988);
+    }
+    68% {
+        opacity: 1;
+        transform: translateY(-1px) scale(1.001);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes protocol-hydrate-soft-in {
+    from {
+        opacity: 0.62;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -6167,7 +6252,14 @@ color: var(--muted);
     .protocols-board.is-opening-board .protocol-card,
     .protocols-board.is-opening-board .protocol-empty-column,
     .protocols-board.is-opening-board .protocol-column-more,
-    .protocols-board.is-opening-board .protocol-column-loader {
+    .protocols-board.is-opening-board .protocol-column-loader,
+    .protocols-board.is-hydrating-board,
+    .protocols-board.is-hydrating-board .protocol-column,
+    .protocols-board.is-hydrating-board .protocol-column > header,
+    .protocols-board.is-hydrating-board .protocol-card,
+    .protocols-board.is-hydrating-board .protocol-empty-column,
+    .protocols-board.is-hydrating-board .protocol-column-more,
+    .protocols-board.is-hydrating-board .protocol-column-loader {
         animation: none !important;
         filter: none !important;
         transform: none !important;

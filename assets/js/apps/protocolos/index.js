@@ -95,6 +95,7 @@ const state = {
     archivedToggleTimer: 0,
     archiveMotionTimer: 0,
     boardEntranceTimer: 0,
+    boardHydrationTimer: 0,
     modalBoardRefreshPending: false,
     saveInFlight: new Map(),
     modalNoticeTimer: 0,
@@ -854,17 +855,26 @@ function renderBoard(options = {}) {
     const scrollByStatus = options.preserveScroll ? captureColumnScrolls() : null;
     const visibleStatuses = statuses.filter(([status]) => state.showArchived || status !== "ARQUIVADOS");
     const entrance = Boolean(options.entrance) && !shouldReduceMotion();
+    const hydrate = Boolean(options.hydrate) && !entrance && !shouldReduceMotion();
     dom.board.classList.toggle("is-loading", state.loadingBoard);
     dom.board.classList.toggle("is-showing-archived", state.showArchived);
     dom.board.classList.toggle("is-opening-board", entrance);
+    dom.board.classList.toggle("is-hydrating-board", hydrate);
     dom.board.setAttribute("aria-busy", state.loadingBoard ? "true" : "false");
     window.clearTimeout(state.boardEntranceTimer);
+    window.clearTimeout(state.boardHydrationTimer);
     if (entrance) {
         state.boardEntranceTimer = window.setTimeout(() => {
             dom.board.classList.remove("is-opening-board");
         }, 620);
     }
+    if (hydrate) {
+        state.boardHydrationTimer = window.setTimeout(() => {
+            dom.board.classList.remove("is-hydrating-board");
+        }, 620);
+    }
     if (state.lastError) {
+        dom.board.classList.remove("is-hydrating-board", "is-opening-board");
         dom.board.innerHTML = `<section class="surface protocols-empty"><strong>Não foi possível carregar os protocolos</strong><p>${escapeHtml(state.lastError)}</p></section>`;
         return;
     }
@@ -1183,6 +1193,7 @@ async function loadBoard(options = {}) {
     const suppressSoftRefreshIndicator = Boolean(options.suppressSoftRefreshIndicator);
     const freshStatuses = Array.isArray(options.freshStatuses) ? options.freshStatuses : [];
     const wasReady = state.boardReady;
+    const hasInitialSkeleton = !wasReady && Boolean(dom.board.querySelector(".protocol-skeleton-card"));
     const softRefresh = wasReady && reset;
     const beforeRects = softRefresh && !suppressSoftRefreshIndicator ? captureCardRects(visibleStatusKeys()) : null;
     state.loadingBoard = true;
@@ -1191,7 +1202,12 @@ async function loadBoard(options = {}) {
         resetBoardState();
     }
     if (!state.boardReady) {
-        renderBoard();
+        if (hasInitialSkeleton && !state.showArchived) {
+            dom.board.classList.add("is-loading");
+            dom.board.setAttribute("aria-busy", "true");
+        } else {
+            renderBoard();
+        }
     } else {
         dom.board.classList.add("is-loading");
         if (!suppressSoftRefreshIndicator) {
@@ -1220,7 +1236,8 @@ async function loadBoard(options = {}) {
             beforeRects,
             preserveScroll: softRefresh,
             settle: (softRefresh && !suppressSoftRefreshIndicator) || animateResults,
-            entrance: !wasReady && !state.lastError
+            entrance: !wasReady && !hasInitialSkeleton && !state.lastError,
+            hydrate: !wasReady && hasInitialSkeleton && !state.lastError
         });
     }
 }
