@@ -883,7 +883,10 @@ function renderBoard(options = {}) {
 
     dom.board.innerHTML = visibleStatuses.map(([status, label], columnIndex) => renderColumn(status, label, columnIndex, { entrance })).join("");
     if (hydrate) {
-        markHydrationVisibleCards();
+        markVisibleCardsForAnimation("is-hydrate-visible");
+    }
+    if (options.filterTransition) {
+        markVisibleCardsForAnimation("is-filter-visible", "--protocol-filter-enter-delay", 10);
     }
     if (scrollByStatus) {
         restoreColumnScrolls(scrollByStatus);
@@ -936,11 +939,12 @@ function animateColumnCounts(previousCounts, nextCounts) {
 function queueProtocolAnimationCleanup() {
     window.clearTimeout(state.animationCleanupTimer);
     state.animationCleanupTimer = window.setTimeout(() => {
-        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-card-filter-leaving, .is-hydrate-visible").forEach((element) => {
-            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-card-filter-leaving", "is-hydrate-visible");
+        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-card-filter-leaving, .is-hydrate-visible, .is-filter-visible").forEach((element) => {
+            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-card-filter-leaving", "is-hydrate-visible", "is-filter-visible");
             element.style.removeProperty("--protocol-card-exit-height");
             element.style.removeProperty("--protocol-filter-delay");
             element.style.removeProperty("--protocol-hydrate-delay");
+            element.style.removeProperty("--protocol-filter-enter-delay");
             element.style.removeProperty("transition");
             element.style.removeProperty("transform");
             element.style.removeProperty("z-index");
@@ -954,7 +958,7 @@ function shouldReduceMotion() {
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 }
 
-function markHydrationVisibleCards() {
+function markVisibleCardsForAnimation(className, delayProperty = "--protocol-hydrate-delay", maxVisiblePerColumn = 8) {
     if (!dom.board || shouldReduceMotion()) return;
 
     const viewport = {
@@ -984,11 +988,12 @@ function markHydrationVisibleCards() {
                 && rect.left < visibleArea.right;
 
             if (isVisible) {
-                card.classList.add("is-hydrate-visible");
+                card.classList.add(className);
+                card.style.setProperty(delayProperty, `${Math.min(visibleIndex, 5) * 16}ms`);
                 visibleIndex += 1;
             }
 
-            if (visibleIndex >= 8 && rect.top > visibleArea.bottom) break;
+            if (visibleIndex >= maxVisiblePerColumn && rect.top > visibleArea.bottom) break;
         }
     });
 }
@@ -1233,8 +1238,11 @@ async function loadBoard(options = {}) {
     const reset = options.reset !== false;
     const refreshLoaded = Boolean(options.refreshLoaded);
     const animateResults = Boolean(options.animateResults);
-    const suppressSoftRefreshIndicator = Boolean(options.suppressSoftRefreshIndicator);
     const skipLayoutAnimation = Boolean(options.skipLayoutAnimation);
+    const filterTransition = Boolean(options.filterTransition);
+    const suppressSoftRefreshIndicator = Boolean(options.suppressSoftRefreshIndicator)
+        || skipLayoutAnimation
+        || filterTransition;
     const freshStatuses = Array.isArray(options.freshStatuses) ? options.freshStatuses : [];
     const wasReady = state.boardReady;
     const hasInitialSkeleton = !wasReady && Boolean(dom.board.querySelector(".protocol-skeleton-card"));
@@ -1254,6 +1262,7 @@ async function loadBoard(options = {}) {
         }
     } else {
         dom.board.classList.add("is-loading");
+        dom.board.setAttribute("aria-busy", "true");
         if (!suppressSoftRefreshIndicator) {
             dom.board.classList.add("is-soft-refreshing");
         }
@@ -1281,7 +1290,8 @@ async function loadBoard(options = {}) {
             preserveScroll: softRefresh,
             settle: ((softRefresh && !suppressSoftRefreshIndicator) || animateResults) && !skipLayoutAnimation,
             entrance: !wasReady && !hasInitialSkeleton && !state.lastError,
-            hydrate: !wasReady && hasInitialSkeleton && !state.lastError
+            hydrate: !wasReady && hasInitialSkeleton && !state.lastError,
+            filterTransition: wasReady && filterTransition && !state.lastError
         });
     }
 }
@@ -1415,7 +1425,8 @@ function scheduleLoad(delay = 180, options = {}) {
             await loadBoard({
                 reset: true,
                 animateResults: animateFilter,
-                skipLayoutAnimation: Boolean(options.skipLayoutAnimation)
+                skipLayoutAnimation: Boolean(options.skipLayoutAnimation),
+                filterTransition: Boolean(options.filterTransition)
             });
         } catch (error) {
             console.error(error);
@@ -1453,7 +1464,7 @@ function scheduleSearchLoad(delay = 260) {
 
         try {
             if (token !== state.filterLoadToken) return;
-            await loadBoard({ reset: true, animateResults: false, skipLayoutAnimation: true });
+            await loadBoard({ reset: true, animateResults: false, skipLayoutAnimation: true, filterTransition: true });
         } catch (error) {
             console.error(error);
         }
@@ -2317,7 +2328,7 @@ function clearFilter(type) {
         return;
     }
     renderActiveFilters();
-    scheduleLoad(20, { skipLayoutAnimation: true });
+    scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
 }
 
 function clearDropTargets(options = {}) {
@@ -2371,7 +2382,7 @@ function setArchivedVisibility(show) {
     if (!state.boardReady) {
         state.showArchived = show;
         renderActiveFilters();
-        scheduleLoad(20, { skipLayoutAnimation: true });
+        scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
         return;
     }
 
@@ -2703,25 +2714,25 @@ function bindFilters() {
     dom.ato.addEventListener("change", () => {
         state.filters.ato = dom.ato.value;
         renderActiveFilters();
-        scheduleLoad(20, { skipLayoutAnimation: true });
+        scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
     });
 
     dom.digitador.addEventListener("change", () => {
         state.filters.digitador = dom.digitador.value;
         renderActiveFilters();
-        scheduleLoad(20, { skipLayoutAnimation: true });
+        scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
     });
 
     dom.tag.addEventListener("change", () => {
         state.filters.tag_custom = dom.tag.value;
         renderActiveFilters();
-        scheduleLoad(20, { skipLayoutAnimation: true });
+        scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
     });
 
     dom.urgente.addEventListener("change", () => {
         state.filters.urgente = dom.urgente.checked ? "1" : "";
         renderActiveFilters();
-        scheduleLoad(20, { skipLayoutAnimation: true });
+        scheduleLoad(20, { skipLayoutAnimation: true, filterTransition: true });
     });
 
     dom.archived.addEventListener("change", () => {

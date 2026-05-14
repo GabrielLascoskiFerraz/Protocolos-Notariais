@@ -2048,6 +2048,13 @@ pointer-events: none;
     animation-delay: var(--protocol-filter-delay, 0ms);
 }
 
+.protocol-card.is-filter-visible {
+    animation: protocol-filter-card-in 260ms var(--protocolos-interaction-ease) both;
+    animation-delay: var(--protocol-filter-enter-delay, 0ms);
+    transform-origin: center top;
+    will-change: opacity, transform;
+}
+
 .protocol-search-highlight {
 padding: 0 0.12em;
     border-radius: 0.34em;
@@ -6158,7 +6165,7 @@ color: var(--muted);
 
 .protocols-board.is-hydrating-board .protocol-card.is-hydrate-visible {
     animation: protocol-hydrate-card-in 380ms var(--protocolos-interaction-ease) both;
-    animation-delay: var(--protocol-card-delay, 40ms);
+    animation-delay: var(--protocol-hydrate-delay, 40ms);
     will-change: opacity, transform;
 }
 
@@ -6221,6 +6228,17 @@ color: var(--muted);
     68% {
         opacity: 1;
         transform: translateY(-1px) scale(1.001);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes protocol-filter-card-in {
+    from {
+        opacity: 0.58;
+        transform: translateY(6px) scale(0.992);
     }
     to {
         opacity: 1;
@@ -6352,7 +6370,8 @@ color: var(--muted);
     .protocols-board.is-hydrating-board .protocol-card,
     .protocols-board.is-hydrating-board .protocol-empty-column,
     .protocols-board.is-hydrating-board .protocol-column-more,
-    .protocols-board.is-hydrating-board .protocol-column-loader {
+    .protocols-board.is-hydrating-board .protocol-column-loader,
+    .protocol-card.is-filter-visible {
         animation: none !important;
         filter: none !important;
         transform: none !important;
