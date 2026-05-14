@@ -167,7 +167,10 @@ protocolos_render_app_start(
                     <p id="protocols-modal-subtitle">Autosave ativo nos campos editáveis.</p>
                 </div>
                 <div class="protocols-dialog-actions">
-                    <button class="button button-secondary" type="button" id="protocols-print">Imprimir Ficha</button>
+                    <button class="button button-secondary" type="button" id="protocols-print">
+                        <span data-protocol-icon="print" aria-hidden="true"></span>
+                        <span>Imprimir Ficha</span>
+                    </button>
                     <button class="chat-icon-button" type="button" id="protocols-close" aria-label="Fechar">×</button>
                 </div>
             </header>
