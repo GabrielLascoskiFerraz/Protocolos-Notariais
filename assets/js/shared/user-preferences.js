@@ -154,13 +154,21 @@ function healthState() {
     const state = readJson(HEALTH_STATE_KEY, {});
     const day = todayKey();
     if (state.day !== day) {
-        return { day, count: 0, nextAt: 0, lastType: "" };
+        return { day, count: 0, nextAt: 0, lastType: "", pending: null };
     }
+    const pending = state.pending && typeof state.pending === "object"
+        ? {
+            id: String(state.pending.id || ""),
+            type: String(state.pending.type || ""),
+            createdAt: Number(state.pending.createdAt || 0)
+        }
+        : null;
     return {
         day,
         count: Number(state.count || 0),
         nextAt: Number(state.nextAt || 0),
-        lastType: String(state.lastType || "")
+        lastType: String(state.lastType || ""),
+        pending: pending?.id && HEALTH_MESSAGES[pending.type] ? pending : null
     };
 }
 
@@ -203,8 +211,17 @@ function ensureHealthHost() {
     return host;
 }
 
-function showInternalHealthReminder(type) {
+function clearPendingHealthReminder(pendingId = "") {
+    const state = healthState();
+    if (!state.pending) return;
+    if (pendingId && state.pending.id !== pendingId) return;
+    state.pending = null;
+    saveHealthState(state);
+}
+
+function showInternalHealthReminder(type, pendingId = "") {
     const [title, message] = HEALTH_MESSAGES[type] || HEALTH_MESSAGES.vision;
+    document.querySelector(".protocol-health-reminder-stack")?.remove();
     const host = ensureHealthHost();
     const card = document.createElement("article");
     card.className = "protocol-health-reminder";
@@ -214,17 +231,38 @@ function showInternalHealthReminder(type) {
             <strong></strong>
             <p></p>
         </div>
-        <button type="button" aria-label="Fechar lembrete">×</button>
+        <div class="protocol-health-reminder-actions">
+            ${"Notification" in window && Notification.permission === "default" ? '<button type="button" data-health-permission>Ativar notificações</button>' : ""}
+            <button type="button" data-health-dismiss>Entendi</button>
+        </div>
     `;
     card.querySelector("strong").textContent = title;
     card.querySelector("p").textContent = message;
     const close = () => {
+        clearPendingHealthReminder(pendingId);
         card.classList.add("is-leaving");
-        window.setTimeout(() => card.remove(), 180);
+        window.setTimeout(() => host.remove(), 180);
     };
-    card.querySelector("button")?.addEventListener("click", close);
+    card.querySelector("[data-health-dismiss]")?.addEventListener("click", close);
+    card.querySelector("[data-health-permission]")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        const permission = await requestHealthNotificationPermission();
+        if (permission === "granted") {
+            const preferences = loadUserPreferences();
+            saveUserPreferences({
+                ...preferences,
+                health: {
+                    ...preferences.health,
+                    browserNotifications: true
+                }
+            });
+            button.textContent = "Notificações ativadas";
+        } else {
+            button.textContent = "Permissão não ativada";
+        }
+    });
     host.appendChild(card);
-    window.setTimeout(close, 12000);
 }
 
 function showBrowserHealthReminder(type) {
@@ -244,6 +282,41 @@ function scheduleNextHealthReminder(preferences = loadUserPreferences(), base = 
     return state.nextAt;
 }
 
+function showPendingHealthReminder(state = healthState(), preferences = loadUserPreferences()) {
+    if (!preferences.health.enabled || !state.pending) return false;
+    if (document.hidden) {
+        showBrowserHealthReminder(state.pending.type);
+        return true;
+    }
+    showInternalHealthReminder(state.pending.type, state.pending.id);
+    return true;
+}
+
+function createPendingHealthReminder(preferences = loadUserPreferences()) {
+    const state = healthState();
+    const rule = HEALTH_RULES[preferences.health.intensity] || HEALTH_RULES.discreet;
+    if (state.pending) {
+        showPendingHealthReminder(state, preferences);
+        return false;
+    }
+    if (!preferences.health.enabled || state.count >= rule.dailyLimit) return false;
+
+    const type = pickHealthType(preferences, state.lastType);
+    if (!type) return false;
+
+    state.count += 1;
+    state.lastType = type;
+    state.pending = {
+        id: `${state.day}-${state.count}-${Date.now()}`,
+        type,
+        createdAt: Date.now()
+    };
+    state.nextAt = Date.now() + nextDelay(preferences);
+    saveHealthState(state);
+    showPendingHealthReminder(state, preferences);
+    return true;
+}
+
 function clearHealthTimer() {
     if (healthTimer) window.clearTimeout(healthTimer);
     healthTimer = 0;
@@ -257,25 +330,27 @@ function startHealthLoop() {
     const state = healthState();
     const rule = HEALTH_RULES[preferences.health.intensity] || HEALTH_RULES.discreet;
     const now = Date.now();
-    const nextAt = state.nextAt > now ? state.nextAt : scheduleNextHealthReminder(preferences, now + 10 * 60 * 1000);
+    showPendingHealthReminder(state, preferences);
+
+    if (!state.pending && state.nextAt > 0 && state.nextAt <= now && state.count < rule.dailyLimit) {
+        createPendingHealthReminder(preferences);
+        startHealthLoop();
+        return;
+    }
+
+    const nextAt = state.nextAt > now ? state.nextAt : scheduleNextHealthReminder(preferences, now);
     const delay = Math.max(30 * 1000, nextAt - now);
 
     healthTimer = window.setTimeout(() => {
         const current = healthState();
         const latest = loadUserPreferences();
-        if (!latest.health.enabled || current.count >= rule.dailyLimit) {
+        const latestRule = HEALTH_RULES[latest.health.intensity] || HEALTH_RULES.discreet;
+        if (!latest.health.enabled || current.count >= latestRule.dailyLimit) {
             startHealthLoop();
             return;
         }
 
-        const type = pickHealthType(latest, current.lastType);
-        if (type) {
-            if (!showBrowserHealthReminder(type)) showInternalHealthReminder(type);
-            current.count += 1;
-            current.lastType = type;
-        }
-        current.nextAt = Date.now() + nextDelay(latest);
-        saveHealthState(current);
+        createPendingHealthReminder(latest);
         startHealthLoop();
     }, delay);
 }
@@ -510,6 +585,13 @@ function initializePreferencesRuntime() {
 
     window.addEventListener("protocolos:preferences", () => {
         startHealthLoop();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            showPendingHealthReminder();
+            startHealthLoop();
+        }
     });
 
     const systemTheme = systemThemeMedia();

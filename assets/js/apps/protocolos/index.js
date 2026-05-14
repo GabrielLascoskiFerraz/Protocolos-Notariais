@@ -882,6 +882,9 @@ function renderBoard(options = {}) {
     const previousCounts = new Map(state.previousCountsByStatus);
 
     dom.board.innerHTML = visibleStatuses.map(([status, label], columnIndex) => renderColumn(status, label, columnIndex, { entrance })).join("");
+    if (hydrate) {
+        markHydrationVisibleCards();
+    }
     if (scrollByStatus) {
         restoreColumnScrolls(scrollByStatus);
     }
@@ -933,10 +936,11 @@ function animateColumnCounts(previousCounts, nextCounts) {
 function queueProtocolAnimationCleanup() {
     window.clearTimeout(state.animationCleanupTimer);
     state.animationCleanupTimer = window.setTimeout(() => {
-        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-card-filter-leaving").forEach((element) => {
-            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-card-filter-leaving");
+        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-card-filter-leaving, .is-hydrate-visible").forEach((element) => {
+            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-card-filter-leaving", "is-hydrate-visible");
             element.style.removeProperty("--protocol-card-exit-height");
             element.style.removeProperty("--protocol-filter-delay");
+            element.style.removeProperty("--protocol-hydrate-delay");
             element.style.removeProperty("transition");
             element.style.removeProperty("transform");
             element.style.removeProperty("z-index");
@@ -948,6 +952,45 @@ function queueProtocolAnimationCleanup() {
 
 function shouldReduceMotion() {
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+}
+
+function markHydrationVisibleCards() {
+    if (!dom.board || shouldReduceMotion()) return;
+
+    const viewport = {
+        top: 0,
+        left: 0,
+        right: window.innerWidth || document.documentElement.clientWidth || 0,
+        bottom: window.innerHeight || document.documentElement.clientHeight || 0
+    };
+
+    dom.board.querySelectorAll(".protocol-column-cards").forEach((container) => {
+        const containerRect = container.getBoundingClientRect();
+        const visibleArea = {
+            top: Math.max(containerRect.top, viewport.top),
+            left: Math.max(containerRect.left, viewport.left),
+            right: Math.min(containerRect.right, viewport.right),
+            bottom: Math.min(containerRect.bottom, viewport.bottom)
+        };
+        if (visibleArea.bottom <= visibleArea.top || visibleArea.right <= visibleArea.left) return;
+
+        let visibleIndex = 0;
+        const cards = [...container.querySelectorAll(".protocol-card:not(.protocol-skeleton-card)")];
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            const isVisible = rect.bottom > visibleArea.top
+                && rect.top < visibleArea.bottom
+                && rect.right > visibleArea.left
+                && rect.left < visibleArea.right;
+
+            if (isVisible) {
+                card.classList.add("is-hydrate-visible");
+                visibleIndex += 1;
+            }
+
+            if (visibleIndex >= 8 && rect.top > visibleArea.bottom) break;
+        }
+    });
 }
 
 function protocolCardElement(id) {
@@ -1191,11 +1234,12 @@ async function loadBoard(options = {}) {
     const refreshLoaded = Boolean(options.refreshLoaded);
     const animateResults = Boolean(options.animateResults);
     const suppressSoftRefreshIndicator = Boolean(options.suppressSoftRefreshIndicator);
+    const skipLayoutAnimation = Boolean(options.skipLayoutAnimation);
     const freshStatuses = Array.isArray(options.freshStatuses) ? options.freshStatuses : [];
     const wasReady = state.boardReady;
     const hasInitialSkeleton = !wasReady && Boolean(dom.board.querySelector(".protocol-skeleton-card"));
     const softRefresh = wasReady && reset;
-    const beforeRects = softRefresh && !suppressSoftRefreshIndicator ? captureCardRects(visibleStatusKeys()) : null;
+    const beforeRects = softRefresh && !suppressSoftRefreshIndicator && !skipLayoutAnimation ? captureCardRects(visibleStatusKeys()) : null;
     state.loadingBoard = true;
     state.lastError = "";
     if (reset && !softRefresh) {
@@ -1235,7 +1279,7 @@ async function loadBoard(options = {}) {
         renderBoard({
             beforeRects,
             preserveScroll: softRefresh,
-            settle: (softRefresh && !suppressSoftRefreshIndicator) || animateResults,
+            settle: ((softRefresh && !suppressSoftRefreshIndicator) || animateResults) && !skipLayoutAnimation,
             entrance: !wasReady && !hasInitialSkeleton && !state.lastError,
             hydrate: !wasReady && hasInitialSkeleton && !state.lastError
         });
@@ -1368,7 +1412,11 @@ function scheduleLoad(delay = 180, options = {}) {
                 await animateCardsBeforeFilterLoad();
             }
             if (token !== state.filterLoadToken) return;
-            await loadBoard({ reset: true, animateResults: animateFilter });
+            await loadBoard({
+                reset: true,
+                animateResults: animateFilter,
+                skipLayoutAnimation: Boolean(options.skipLayoutAnimation)
+            });
         } catch (error) {
             console.error(error);
         }
@@ -1393,7 +1441,7 @@ function flushDeferredBoardRefresh() {
     scheduleLoad(80);
 }
 
-function scheduleSearchLoad(delay = 700) {
+function scheduleSearchLoad(delay = 260) {
     window.clearTimeout(scheduleLoad.timer);
     const token = ++state.filterLoadToken;
     scheduleLoad.timer = window.setTimeout(async () => {
@@ -1404,9 +1452,8 @@ function scheduleSearchLoad(delay = 700) {
         renderActiveFilters();
 
         try {
-            await animateCardsBeforeFilterLoad();
             if (token !== state.filterLoadToken) return;
-            await loadBoard({ reset: true, animateResults: true });
+            await loadBoard({ reset: true, animateResults: false, skipLayoutAnimation: true });
         } catch (error) {
             console.error(error);
         }
@@ -2270,7 +2317,7 @@ function clearFilter(type) {
         return;
     }
     renderActiveFilters();
-    scheduleLoad(60, { animateFilter: true });
+    scheduleLoad(20, { skipLayoutAnimation: true });
 }
 
 function clearDropTargets(options = {}) {
@@ -2324,7 +2371,7 @@ function setArchivedVisibility(show) {
     if (!state.boardReady) {
         state.showArchived = show;
         renderActiveFilters();
-        scheduleLoad(30, { animateFilter: true });
+        scheduleLoad(20, { skipLayoutAnimation: true });
         return;
     }
 
@@ -2656,25 +2703,25 @@ function bindFilters() {
     dom.ato.addEventListener("change", () => {
         state.filters.ato = dom.ato.value;
         renderActiveFilters();
-        scheduleLoad(60, { animateFilter: true });
+        scheduleLoad(20, { skipLayoutAnimation: true });
     });
 
     dom.digitador.addEventListener("change", () => {
         state.filters.digitador = dom.digitador.value;
         renderActiveFilters();
-        scheduleLoad(60, { animateFilter: true });
+        scheduleLoad(20, { skipLayoutAnimation: true });
     });
 
     dom.tag.addEventListener("change", () => {
         state.filters.tag_custom = dom.tag.value;
         renderActiveFilters();
-        scheduleLoad(60, { animateFilter: true });
+        scheduleLoad(20, { skipLayoutAnimation: true });
     });
 
     dom.urgente.addEventListener("change", () => {
         state.filters.urgente = dom.urgente.checked ? "1" : "";
         renderActiveFilters();
-        scheduleLoad(60, { animateFilter: true });
+        scheduleLoad(20, { skipLayoutAnimation: true });
     });
 
     dom.archived.addEventListener("change", () => {

@@ -90,9 +90,16 @@ function renderOutputHighlights(value = outputEl?.value || "") {
     });
 
     html += escapeHtml(value.slice(cursor));
-    outputHighlightEl.innerHTML = html || "";
-    outputHighlightEl.scrollTop = outputEl?.scrollTop || 0;
-    outputHighlightEl.scrollLeft = outputEl?.scrollLeft || 0;
+    outputHighlightEl.innerHTML = `<div class="protocol-cert-output-highlight-content">${html || ""}</div>`;
+    syncOutputHighlightScroll();
+}
+
+function syncOutputHighlightScroll() {
+    if (!outputEl || !outputHighlightEl) return;
+    const content = outputHighlightEl.querySelector(".protocol-cert-output-highlight-content");
+    if (!content) return;
+    content.style.width = `${outputEl.clientWidth}px`;
+    content.style.transform = `translate(${-outputEl.scrollLeft}px, ${-outputEl.scrollTop}px)`;
 }
 
 function certCardState(doc) {
@@ -432,11 +439,10 @@ resultsEl?.addEventListener("click", (event) => {
 copyBtn?.addEventListener("click", () => void copyOutput());
 clearBtn?.addEventListener("click", clearAll);
 outputEl?.addEventListener("scroll", () => {
-    if (!outputHighlightEl) return;
-    outputHighlightEl.scrollTop = outputEl.scrollTop;
-    outputHighlightEl.scrollLeft = outputEl.scrollLeft;
+    syncOutputHighlightScroll();
 });
 outputEl?.addEventListener("input", () => renderOutputHighlights());
+window.addEventListener("resize", syncOutputHighlightScroll);
 alertCloseBtn?.addEventListener("click", closeAlertModal);
 alertOverlay?.addEventListener("click", closeAlertModal);
 alertModal?.addEventListener("cancel", (event) => {
