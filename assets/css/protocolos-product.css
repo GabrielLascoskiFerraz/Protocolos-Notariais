@@ -1474,12 +1474,6 @@ border-color: rgba(61, 111, 182, 0.5);
     box-shadow: 0 0 0 3px rgba(61, 111, 182, 0.12);
 }
 
-.field input.is-data-saved,
-.field select.is-data-saved,
-.field textarea.is-data-saved {
-animation: protocol-data-saved 620ms ease both;
-}
-
 .field-span-2 {
 grid-column: span 2;
 }
@@ -3766,17 +3760,6 @@ min-width: 0;
     }
 }
 
-@keyframes protocol-data-saved{
-    0% {
-        border-color: rgba(61, 111, 182, 0.5);
-        box-shadow: 0 0 0 3px rgba(61, 111, 182, 0.14);
-        background: rgba(230, 238, 251, 0.48);
-    }
-    100% {
-        box-shadow: none;
-    }
-}
-
 @keyframes protocol-toast-in{
     from {
         opacity: 0;
@@ -5057,6 +5040,16 @@ color: var(--muted);
     background: var(--accent-soft);
     font-size: 1.4rem;
     line-height: 1;
+}
+
+.protocol-health-reminder-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .protocol-health-reminder strong {

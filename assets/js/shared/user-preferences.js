@@ -36,6 +36,14 @@ const HEALTH_MESSAGES = {
     hydration: ["Beba água", "Tome alguns goles de água antes da próxima ficha."]
 };
 
+const HEALTH_REMINDER_ICON = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 21s-7-4.35-7-10.3A4.35 4.35 0 0 1 12 7.85a4.35 4.35 0 0 1 7 2.85C19 16.65 12 21 12 21Z"></path>
+        <path d="M9 12h6"></path>
+        <path d="M12 9v6"></path>
+    </svg>
+`;
+
 let healthTimer = 0;
 const preferencesRuntime = typeof window !== "undefined"
     ? (window.__protocolosPreferencesRuntime ||= { initialized: false, welcomeOpen: false })
@@ -226,7 +234,7 @@ function showInternalHealthReminder(type, pendingId = "") {
     const card = document.createElement("article");
     card.className = "protocol-health-reminder";
     card.innerHTML = `
-        <div class="protocol-health-reminder-icon" aria-hidden="true">•</div>
+        <div class="protocol-health-reminder-icon" aria-hidden="true">${HEALTH_REMINDER_ICON}</div>
         <div>
             <strong></strong>
             <p></p>

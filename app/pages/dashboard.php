@@ -393,7 +393,7 @@ protocolos_render_app_start(
         <?php endforeach; ?>
     </datalist>
 
-    <div id="protocols-delete-modal" class="protocol-modal hidden" aria-hidden="true">
+    <dialog id="protocols-delete-modal" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
         <div id="protocols-delete-overlay" class="protocol-modal-overlay"></div>
         <div class="protocol-modal-panel protocols-confirm-panel" role="dialog" aria-modal="true" aria-labelledby="protocols-delete-title">
             <div class="surface-head surface-head-compact">
@@ -410,7 +410,7 @@ protocolos_render_app_start(
                 <button class="button button-primary danger" id="protocols-delete-confirm" type="button">Excluir protocolo</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <dialog id="protocols-note-delete-modal" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
         <div id="protocols-note-delete-overlay" class="protocol-modal-overlay"></div>

@@ -205,13 +205,33 @@ function money(value) {
     return number.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function parseMoneyNumber(value) {
+    const raw = normalize(value);
+    if (!raw) return null;
+
+    const clean = raw.replace(/[R$\s]/g, "");
+    let normalized = clean;
+    if (clean.includes(",")) {
+        normalized = clean.replace(/\./g, "").replace(",", ".");
+    } else if ((clean.match(/\./g) || []).length > 1) {
+        normalized = clean.replace(/\./g, "");
+    } else if (/^\d{1,3}\.\d{3}$/.test(clean)) {
+        normalized = clean.replace(".", "");
+    }
+
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : null;
+}
+
+function moneyDecimalValue(value) {
+    const number = parseMoneyNumber(value);
+    return number === null ? normalize(value) : number.toFixed(2);
+}
+
 function moneyInputValue(value) {
     const raw = normalize(value);
     if (!raw) return "";
-    const normalized = raw.includes(",")
-        ? raw.replace(/\./g, "").replace(",", ".")
-        : raw;
-    const number = Number(normalized);
+    const number = parseMoneyNumber(raw);
     if (!Number.isFinite(number)) {
         return raw.replace(".", ",");
     }
@@ -227,13 +247,7 @@ function normalizedProtocolFieldValue(field, value) {
     if (field === "valor_ato") {
         const raw = normalize(value);
         if (!raw) return "";
-        if (raw.includes(",")) return raw.replace(/[.\s]/g, "").replace(",", ".");
-        if ((raw.match(/\./g) || []).length > 1) {
-            const parts = raw.split(".");
-            const decimal = parts.pop();
-            return `${parts.join("")}.${decimal}`;
-        }
-        return raw;
+        return moneyDecimalValue(raw);
     }
     return normalize(value);
 }
@@ -1767,22 +1781,15 @@ async function openProtocol(id, event = null, trigger = null) {
     resetDialogScroll();
 }
 
-function flashSavedElement(element) {
-    if (!element) return;
-    element.classList.remove("is-data-saved");
-    void element.offsetWidth;
-    element.classList.add("is-data-saved");
-    window.setTimeout(() => element.classList.remove("is-data-saved"), 680);
-}
-
 async function saveField(protocolId, field, value, element = null) {
     if (!protocolId) return;
     const expectedValue = element?.dataset.protocolSavedValue ?? state.current?.[field] ?? "";
+    const normalizedValue = normalizedProtocolFieldValue(field, value);
     try {
         const data = await apiPost("protocolos", { action: "update" }, {
             id: protocolId,
             field,
-            value,
+            value: normalizedValue,
             expected_value: expectedValue
         });
         applyServerClock(data);
@@ -1793,7 +1800,6 @@ async function saveField(protocolId, field, value, element = null) {
             updateDialogOverview(state.current);
             applyDialogAccent(state.current);
             setSavedElementValue(element, state.current[field]);
-            flashSavedElement(element);
         }
         if (data.protocol) {
             patchProtocolInState(data.protocol);
@@ -1927,8 +1933,31 @@ async function loadValues(id = currentId()) {
         ? state.currentLists.values.map((item) => subItemRow("values", item)).join("")
         : `<div class="protocol-empty-column">Nenhum valor adicional.</div>`;
     const total = state.currentLists.values.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    updateValuesTotal(total);
+}
+
+function updateValuesTotal(total) {
     dom.valuesTotal.textContent = `Total adicional: ${money(total)}`;
     patchCurrentProtocol({ total_valores: total });
+}
+
+function syncValueRowAfterSave(row, data = {}) {
+    if (!row) return;
+    const id = String(row.dataset.valueId || "");
+    const descricao = row.querySelector("[data-value-field='descricao']")?.value || "";
+    const valor = moneyDecimalValue(row.querySelector("[data-value-field='valor']")?.value || "0");
+    const index = state.currentLists.values.findIndex((item) => String(item.id || "") === id);
+
+    if (index >= 0) {
+        state.currentLists.values[index] = {
+            ...state.currentLists.values[index],
+            descricao,
+            valor
+        };
+    }
+
+    const total = data.total ?? state.currentLists.values.reduce((sum, item) => sum + Number(item.valor || 0), 0);
+    updateValuesTotal(total);
 }
 
 async function loadNotes(id = currentId()) {
@@ -2168,6 +2197,9 @@ function closeDeleteModal() {
     if (!dom.deleteModal) return;
     dom.deleteModal.classList.add("is-closing");
     window.setTimeout(() => {
+        if (typeof dom.deleteModal.close === "function" && dom.deleteModal.open) {
+            dom.deleteModal.close();
+        }
         dom.deleteModal.classList.add("hidden");
         dom.deleteModal.classList.remove("is-closing", "is-opening");
         dom.deleteModal.setAttribute("aria-hidden", "true");
@@ -2185,8 +2217,11 @@ function requestDeleteProtocol(id) {
     }
     if (!dom.deleteModal) return;
     dom.deleteModal.classList.remove("is-closing");
-    dom.deleteModal.classList.add("is-opening");
     dom.deleteModal.classList.remove("hidden");
+    if (typeof dom.deleteModal.showModal === "function" && !dom.deleteModal.open) {
+        dom.deleteModal.showModal();
+    }
+    dom.deleteModal.classList.add("is-opening");
     dom.deleteModal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
 }
@@ -2542,7 +2577,12 @@ function bindModalEvents() {
 
     fieldElements().forEach((element) => {
         element.addEventListener(element.type === "checkbox" ? "change" : "input", () => queueSave(element));
-        element.addEventListener("blur", () => queueSave(element));
+        element.addEventListener("blur", () => {
+            if (element.dataset.protocolField === "valor_ato") {
+                element.value = moneyInputValue(element.value);
+            }
+            queueSave(element);
+        });
     });
 
     dom.addProperty.addEventListener("click", async () => {
@@ -2612,11 +2652,11 @@ function bindModalEvents() {
                         id: value.dataset.valueId,
                         protocolo_id: currentId(),
                         descricao: value.querySelector("[data-value-field='descricao']").value,
-                        valor: value.querySelector("[data-value-field='valor']").value || "0"
+                        valor: moneyDecimalValue(value.querySelector("[data-value-field='valor']").value || "0")
                     });
                     applyServerClock(data);
                     markCurrentProtocolTouched(data);
-                    await loadValues();
+                    syncValueRowAfterSave(value, data);
                 } catch (error) {
                     showProtocolToast(error.message || "Não foi possível salvar o valor.");
                 }
@@ -2642,6 +2682,11 @@ function bindModalEvents() {
                 }
             }, 380);
         }
+    });
+
+    dom.dialog.addEventListener("focusout", (event) => {
+        if (!event.target.matches("[data-value-field='valor']")) return;
+        event.target.value = moneyInputValue(event.target.value);
     });
 
     dom.dialog.addEventListener("click", async (event) => {
@@ -2679,6 +2724,10 @@ function bindConfirmEvents() {
     dom.deleteClose?.addEventListener("click", closeDeleteModal);
     dom.deleteCancel?.addEventListener("click", closeDeleteModal);
     dom.deleteOverlay?.addEventListener("click", closeDeleteModal);
+    dom.deleteModal?.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        closeDeleteModal();
+    });
     dom.deleteConfirm?.addEventListener("click", () => {
         if (!state.pendingDeleteId) return;
         deleteProtocol(state.pendingDeleteId).catch(console.error);

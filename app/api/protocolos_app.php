@@ -23,14 +23,16 @@ function protocols_money($value)
 {
     $value = trim((string) $value);
     if ($value === '') return $value;
+    $value = str_replace(['R$', ' '], '', $value);
     if (str_contains($value, ',')) {
-        $value = str_replace(['.', ' '], '', $value);
+        $value = str_replace('.', '', $value);
         return str_replace(',', '.', $value);
     }
     if (substr_count($value, '.') > 1) {
-        $parts = explode('.', $value);
-        $decimal = array_pop($parts);
-        return implode('', $parts) . '.' . $decimal;
+        return str_replace('.', '', $value);
+    }
+    if (preg_match('/^\d{1,3}\.\d{3}$/', $value)) {
+        return str_replace('.', '', $value);
     }
     return $value;
 }
@@ -44,7 +46,7 @@ function protocols_total(PDO $pdo, int $protocolId): float
 {
     $stmt = $pdo->prepare('SELECT COALESCE(SUM(valor), 0) FROM protocolos_valores WHERE protocolo_id = ?');
     $stmt->execute([$protocolId]);
-    return (float) $stmt->fetchColumn();
+    return round((float) $stmt->fetchColumn(), 2);
 }
 
 function protocols_touch(PDO $pdo, int $protocolId): void
