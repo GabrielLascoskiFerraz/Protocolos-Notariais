@@ -34,6 +34,7 @@ function protocolos_build_board_metadata(PDO $pdo): array
 
     return [
         'atos' => protocolos_unique_case_insensitive($atos),
+        'atoOptions' => protocolos_unique_case_insensitive(array_merge(array_keys($atoColors), $atos)),
         'atoColors' => $atoColors,
         'digitadores' => array_values(array_filter(array_map('strval', $digitadores))),
         'tags' => protocolos_unique_case_insensitive($tags),

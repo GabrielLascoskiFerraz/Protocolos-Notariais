@@ -188,6 +188,24 @@ function protocols_distinct(PDO $pdo, string $field): array
     return array_values($map);
 }
 
+function protocols_unique_case_insensitive_values(array $values): array
+{
+    $map = [];
+    foreach ($values as $value) {
+        $value = trim((string) $value);
+        $key = mb_strtolower($value, 'UTF-8');
+        if ($key !== '' && !isset($map[$key])) $map[$key] = $value;
+    }
+    ksort($map, SORT_NATURAL | SORT_FLAG_CASE);
+    return array_values($map);
+}
+
+function protocols_all_ato_options(PDO $pdo): array
+{
+    $atoColors = require __DIR__ . '/../config/ato-cores.php';
+    return protocols_unique_case_insensitive_values(array_merge(array_keys($atoColors), protocols_distinct($pdo, 'ato')));
+}
+
 function protocols_handle_protocols(PDO $pdo, string $action): void
 {
     if ($action === 'create') {
@@ -562,6 +580,7 @@ function protocols_handle_metadata(PDO $pdo, string $action): void
     if ($action !== 'list') protocols_json(['error' => 'Ação desconhecida'], 400);
     protocols_json([
         'atos' => protocols_distinct($pdo, 'ato'),
+        'atoOptions' => protocols_all_ato_options($pdo),
         'digitadores' => protocols_distinct($pdo, 'digitador'),
         'tags' => protocols_distinct($pdo, 'tag_custom'),
         'server_now' => protocols_now($pdo),

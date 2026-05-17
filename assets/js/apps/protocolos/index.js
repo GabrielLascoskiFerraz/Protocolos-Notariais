@@ -9,6 +9,7 @@ const atoColorsLower = Object.fromEntries(
 );
 const filterMetadata = {
     atos: new Set(metadata.atos || []),
+    atoOptions: new Set(metadata.atoOptions || metadata.atos || []),
     digitadores: new Set(metadata.digitadores || []),
     tags: new Set(metadata.tags || [])
 };
@@ -340,11 +341,17 @@ function syncFilterOption(kind, value) {
 
     if (kind === "ato") {
         const key = lowerValue(label);
-        if (filterMetadata.atos.has(label)) return false;
-        filterMetadata.atos.add(label);
-        addSelectOption(dom.ato, key, label);
-        addDatalistOption(dom.atoOptions, label);
-        return true;
+        const changedFilter = !filterMetadata.atos.has(label);
+        const changedSuggestion = !filterMetadata.atoOptions.has(label);
+        if (changedFilter) {
+            filterMetadata.atos.add(label);
+            addSelectOption(dom.ato, key, label);
+        }
+        if (changedSuggestion) {
+            filterMetadata.atoOptions.add(label);
+            addDatalistOption(dom.atoOptions, label);
+        }
+        return changedFilter || changedSuggestion;
     }
 
     if (kind === "digitador") {
@@ -379,6 +386,12 @@ async function refreshFilterMetadata() {
     const data = await apiGet("metadata", { action: "list" });
     applyServerClock(data);
     (data.atos || []).forEach((value) => syncFilterOption("ato", value));
+    (data.atoOptions || []).forEach((value) => {
+        const label = normalize(value);
+        if (!label || filterMetadata.atoOptions.has(label)) return;
+        filterMetadata.atoOptions.add(label);
+        addDatalistOption(dom.atoOptions, label);
+    });
     (data.digitadores || []).forEach((value) => syncFilterOption("digitador", value));
     (data.tags || []).forEach((value) => syncFilterOption("tag_custom", value));
 }
@@ -1566,7 +1579,7 @@ function applyExternalProtocolToModal(protocol = {}) {
     updateDialogOverview(state.current);
     applyDialogAccent(state.current);
     dom.title.textContent = protocolTitle(state.current);
-    dom.subtitle.textContent = state.current.ato ? `Ato: ${state.current.ato}` : "Autosave ativo nos campos editáveis.";
+    clearDialogSubtitle();
     return changedFields;
 }
 
@@ -1575,6 +1588,12 @@ function updateDialogOverview(protocol) {
     dom.overviewAto.textContent = protocol.ato || "-";
     dom.overviewDigitador.textContent = protocol.digitador || "-";
     dom.overviewData.textContent = protocol.data_apresentacao ? dateBr(protocol.data_apresentacao) : "-";
+}
+
+function clearDialogSubtitle() {
+    if (!dom.subtitle) return;
+    dom.subtitle.textContent = "";
+    dom.subtitle.hidden = true;
 }
 
 function applyDialogAccent(protocol) {
@@ -1596,7 +1615,7 @@ function fillModal(protocol) {
     syncFilterOptionsFromProtocol(protocol);
     showModalNotice("");
     dom.title.textContent = protocolTitle(protocol);
-    dom.subtitle.textContent = protocol.ato ? `Ato: ${protocol.ato}` : "Autosave ativo nos campos editáveis.";
+    clearDialogSubtitle();
     updateDialogOverview(protocol);
     applyDialogAccent(protocol);
 
@@ -1796,7 +1815,7 @@ async function saveField(protocolId, field, value, element = null) {
         if (currentId() === Number(protocolId) && data.protocol) {
             state.current = data.protocol;
             dom.title.textContent = protocolTitle(state.current);
-            dom.subtitle.textContent = state.current.ato ? `Ato: ${state.current.ato}` : "Autosave ativo nos campos editáveis.";
+            clearDialogSubtitle();
             updateDialogOverview(state.current);
             applyDialogAccent(state.current);
             setSavedElementValue(element, state.current[field]);

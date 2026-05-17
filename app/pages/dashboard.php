@@ -164,7 +164,7 @@ protocolos_render_app_start(
                 <div>
                     <span class="eyebrow">Protocolo</span>
                     <h2 id="protocols-modal-title">Ficha</h2>
-                    <p id="protocols-modal-subtitle">Autosave ativo nos campos editáveis.</p>
+                    <p id="protocols-modal-subtitle" hidden></p>
                 </div>
                 <div class="protocols-dialog-actions">
                     <button class="button button-secondary" type="button" id="protocols-print">
@@ -378,7 +378,7 @@ protocolos_render_app_start(
     </dialog>
 
     <datalist id="protocols-ato-options">
-        <?php foreach ($metadata['atos'] as $ato): ?>
+        <?php foreach (($metadata['atoOptions'] ?? $metadata['atos']) as $ato): ?>
             <option value="<?= htmlspecialchars($ato, ENT_QUOTES, 'UTF-8') ?>"></option>
         <?php endforeach; ?>
     </datalist>
