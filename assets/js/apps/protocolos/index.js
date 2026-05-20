@@ -91,6 +91,7 @@ const state = {
     freshCardIds: new Set(),
     animationCleanupTimer: 0,
     filterAnimationTimer: 0,
+    filterMetadataRefreshTimer: 0,
     filterLoadToken: 0,
     archivedTransition: "",
     archivedToggleTimer: 0,
@@ -335,6 +336,50 @@ function addDatalistOption(datalist, value) {
     datalist.appendChild(option);
 }
 
+function uniqueSortedLabels(values = []) {
+    const map = new Map();
+    values.forEach((value) => {
+        const label = normalize(value);
+        const key = lowerValue(label);
+        if (key && !map.has(key)) map.set(key, label);
+    });
+    return [...map.values()].sort((left, right) => left.localeCompare(right, "pt-BR"));
+}
+
+function replaceSelectOptions(select, values = [], valueForLabel = (label) => label) {
+    if (!select) return;
+    const firstOption = select.options[0]?.cloneNode(true) || new Option("Todos", "");
+    const options = uniqueSortedLabels(values).map((label) => {
+        const option = document.createElement("option");
+        option.value = valueForLabel(label);
+        option.textContent = label;
+        return option;
+    });
+    select.replaceChildren(firstOption, ...options);
+}
+
+function replaceDatalistOptions(datalist, values = []) {
+    if (!datalist) return;
+    const options = uniqueSortedLabels(values).map((label) => {
+        const option = document.createElement("option");
+        option.value = label;
+        return option;
+    });
+    datalist.replaceChildren(...options);
+}
+
+function replaceTagOptions(values = []) {
+    const selectedValue = state.filters.tag_custom || dom.tag?.value || "";
+    const labels = uniqueSortedLabels(values);
+    filterMetadata.tags = new Set(labels);
+    replaceSelectOptions(dom.tag, labels, (label) => lowerValue(label));
+    replaceDatalistOptions(dom.tagOptions, labels);
+    if (dom.tag) {
+        dom.tag.value = selectedValue && optionExists(dom.tag, selectedValue) ? selectedValue : "";
+    }
+    renderActiveFilters();
+}
+
 function syncFilterOption(kind, value) {
     const label = normalize(value);
     if (!label) return false;
@@ -374,11 +419,13 @@ function syncFilterOption(kind, value) {
     return false;
 }
 
-function syncFilterOptionsFromProtocol(protocol = {}) {
+function syncFilterOptionsFromProtocol(protocol = {}, options = {}) {
     let changed = false;
     changed = syncFilterOption("ato", protocol.ato) || changed;
     changed = syncFilterOption("digitador", protocol.digitador) || changed;
-    changed = syncFilterOption("tag_custom", protocol.tag_custom) || changed;
+    if (options.includeTags) {
+        changed = syncFilterOption("tag_custom", protocol.tag_custom) || changed;
+    }
     if (changed) renderActiveFilters();
 }
 
@@ -393,7 +440,16 @@ async function refreshFilterMetadata() {
         addDatalistOption(dom.atoOptions, label);
     });
     (data.digitadores || []).forEach((value) => syncFilterOption("digitador", value));
-    (data.tags || []).forEach((value) => syncFilterOption("tag_custom", value));
+    replaceTagOptions(data.tags || []);
+}
+
+function scheduleFilterMetadataRefresh(delay = 800) {
+    window.clearTimeout(state.filterMetadataRefreshTimer);
+    state.filterMetadataRefreshTimer = window.setTimeout(() => {
+        refreshFilterMetadata().catch((error) => {
+            console.error(error);
+        });
+    }, delay);
 }
 
 function applyServerClock(data = {}) {
@@ -1346,6 +1402,9 @@ async function syncChanges() {
             state.lastSyncAt = data.server_now;
         }
         if (!items.length) return;
+        if (items.some((item) => Object.prototype.hasOwnProperty.call(item, "tag_custom"))) {
+            scheduleFilterMetadataRefresh(1200);
+        }
 
         if (hasActiveFilters()) {
             await loadBoard({ reset: true, refreshLoaded: true });
@@ -1822,6 +1881,9 @@ async function saveField(protocolId, field, value, element = null) {
         }
         if (data.protocol) {
             patchProtocolInState(data.protocol);
+        }
+        if (field === "tag_custom") {
+            scheduleFilterMetadataRefresh(900);
         }
     } catch (error) {
         const message = error.status === 409
@@ -2601,6 +2663,9 @@ function bindModalEvents() {
                 element.value = moneyInputValue(element.value);
             }
             queueSave(element);
+            if (element.dataset.protocolField === "tag_custom") {
+                scheduleFilterMetadataRefresh(900);
+            }
         });
     });
 
