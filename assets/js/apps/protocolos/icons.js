@@ -20,6 +20,7 @@ export function protocolIcon(name) {
         progress: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v7l4 2"></path><path d="M20 12a8 8 0 1 1-2.3-5.7"></path><path d="M20 5.5V10h-4.5"></path></svg>',
         correction: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4.5 18.5 1-4.2 9.8-9.8a2 2 0 0 1 2.8 2.8l-9.8 9.8-3.8 1.4Z"></path><path d="m13.5 6.3 4.2 4.2"></path><path d="M12 19.5h7.5"></path></svg>',
         done: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 7 10 17l-5-5"></path><path d="M4.5 19.5h15"></path></svg>',
+        copy: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15.5V6.5A1.5 1.5 0 0 1 6.5 5h9"></path></svg>',
         print: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7.5 8V4.5h9V8"></path><path d="M7.5 17.5h-1A2.5 2.5 0 0 1 4 15v-4.5A2.5 2.5 0 0 1 6.5 8h11A2.5 2.5 0 0 1 20 10.5V15a2.5 2.5 0 0 1-2.5 2.5h-1"></path><path d="M8 14.5h8v5H8z"></path><path d="M17 11.5h.01"></path></svg>',
     };
 

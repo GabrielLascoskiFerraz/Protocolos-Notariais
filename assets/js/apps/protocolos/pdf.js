@@ -30,6 +30,10 @@ function fichaLabel(value) {
     return hasFicha(value) ? String(value).trim() : "Não Possui Ficha";
 }
 
+function printableFichaHtml(value) {
+    return hasFicha(value) ? escapeHtml(String(value).trim()) : "&nbsp;";
+}
+
 export async function printProtocolSheet({ current, apiGet, protocolTitle, logoPath }) {
     if (!current?.id) return;
 
@@ -272,7 +276,7 @@ body{
     ${protocol.urgente == 1 ? '<div class="tag-urgente">Urgente</div>' : ''}
     <div class="ficha-box">
       <div class="label">Ficha</div>
-      <div class="numero">${escapeHtml(fichaLabel(protocol.ficha))}</div>
+      <div class="numero">${printableFichaHtml(protocol.ficha)}</div>
     </div>
   </div>
 </div>

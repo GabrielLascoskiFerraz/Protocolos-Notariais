@@ -138,6 +138,7 @@ const dom = {
     activeFilters: document.getElementById("protocols-active-filters"),
     dialog: document.getElementById("protocols-dialog"),
     close: document.getElementById("protocols-close"),
+    duplicate: document.getElementById("protocols-duplicate"),
     print: document.getElementById("protocols-print"),
     title: document.getElementById("protocols-modal-title"),
     subtitle: document.getElementById("protocols-modal-subtitle"),
@@ -2160,6 +2161,34 @@ async function createProtocol() {
     if (data.id) await openProtocol(data.id);
 }
 
+async function duplicateProtocol() {
+    const sourceId = currentId();
+    if (!sourceId || dom.duplicate?.disabled) return;
+
+    if (dom.duplicate) dom.duplicate.disabled = true;
+    try {
+        await flushPendingFieldSaves(sourceId);
+        const data = await apiPost("protocolos", { action: "duplicate" }, { id: sourceId });
+        applyServerClock(data);
+
+        const duplicatedId = data.id || data.protocol?.id;
+        if (duplicatedId) state.freshCardIds.add(String(duplicatedId));
+
+        if (state.boardReady) {
+            await refreshTouchedStatuses(["PARA_DISTRIBUIR"]);
+        } else {
+            await loadBoard();
+        }
+
+        if (duplicatedId) await openProtocol(duplicatedId);
+        showProtocolToast("Ficha duplicada.", "success");
+    } catch (error) {
+        showProtocolToast(error.message || "Não foi possível duplicar a ficha.");
+    } finally {
+        if (dom.duplicate) dom.duplicate.disabled = false;
+    }
+}
+
 function adjustStatusTotal(status, delta) {
     if (!status || !state.totalsByStatus.has(status)) return;
     const current = Number(state.totalsByStatus.get(status));
@@ -2646,6 +2675,9 @@ function bindModalEvents() {
         cancelPendingFieldSaves();
         showModalNotice("");
         flushDeferredBoardRefresh();
+    });
+    dom.duplicate?.addEventListener("click", () => {
+        duplicateProtocol().catch(console.error);
     });
     dom.print.addEventListener("click", printProtocol);
     dom.notes?.addEventListener("scroll", syncNotesScrollHint, { passive: true });

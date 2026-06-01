@@ -167,6 +167,10 @@ protocolos_render_app_start(
                     <p id="protocols-modal-subtitle" hidden></p>
                 </div>
                 <div class="protocols-dialog-actions">
+                    <button class="button button-secondary" type="button" id="protocols-duplicate">
+                        <span data-protocol-icon="copy" aria-hidden="true"></span>
+                        <span>Duplicar</span>
+                    </button>
                     <button class="button button-secondary" type="button" id="protocols-print">
                         <span data-protocol-icon="print" aria-hidden="true"></span>
                         <span>Imprimir Ficha</span>

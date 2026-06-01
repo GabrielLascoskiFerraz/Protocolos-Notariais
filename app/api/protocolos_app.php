@@ -214,6 +214,52 @@ function protocols_handle_protocols(PDO $pdo, string $action): void
         protocols_json(['success' => true, 'id' => $pdo->lastInsertId(), 'server_now' => protocols_now($pdo)]);
     }
 
+    if ($action === 'duplicate') {
+        $id = (int) ($_POST['id'] ?? 0);
+        $source = protocols_require_active_protocol($pdo, $id);
+
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("\n                INSERT INTO protocolos (\n                    ficha, ato, digitador, apresentante, data_apresentacao, contato,\n                    outorgantes, outorgados, matricula, area, valor_ato, status,\n                    observacoes, pasta_documentos, urgente, deletado, tag_custom\n                ) VALUES (\n                    NULL, :ato, :digitador, :apresentante, CURRENT_DATE(), :contato,\n                    :outorgantes, :outorgados, :matricula, :area, :valor_ato, 'PARA_DISTRIBUIR',\n                    :observacoes, NULL, :urgente, 0, :tag_custom\n                )\n            ");
+            $stmt->execute([
+                ':ato' => $source['ato'] ?? '',
+                ':digitador' => $source['digitador'] ?? null,
+                ':apresentante' => $source['apresentante'] ?? null,
+                ':contato' => $source['contato'] ?? null,
+                ':outorgantes' => $source['outorgantes'] ?? null,
+                ':outorgados' => $source['outorgados'] ?? null,
+                ':matricula' => $source['matricula'] ?? null,
+                ':area' => $source['area'] ?? null,
+                ':valor_ato' => $source['valor_ato'] ?? null,
+                ':observacoes' => $source['observacoes'] ?? null,
+                ':urgente' => (int) ($source['urgente'] ?? 0),
+                ':tag_custom' => $source['tag_custom'] ?? null,
+            ]);
+
+            $newId = (int) $pdo->lastInsertId();
+
+            $stmt = $pdo->prepare("\n                INSERT INTO protocolos_imoveis (protocolo_id, matricula, area)\n                SELECT ?, matricula, area\n                FROM protocolos_imoveis\n                WHERE protocolo_id = ?\n                ORDER BY id ASC\n            ");
+            $stmt->execute([$newId, $id]);
+
+            $stmt = $pdo->prepare("\n                INSERT INTO protocolos_valores (protocolo_id, descricao, valor)\n                SELECT ?, descricao, valor\n                FROM protocolos_valores\n                WHERE protocolo_id = ?\n                ORDER BY id ASC\n            ");
+            $stmt->execute([$newId, $id]);
+
+            $pdo->commit();
+
+            protocols_json([
+                'success' => true,
+                'id' => $newId,
+                'protocol' => protocols_fetch_protocol($pdo, $newId),
+                'server_now' => protocols_now($pdo),
+            ]);
+        } catch (Throwable $error) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[protocolos duplicate] ' . $error->getMessage());
+            protocols_json(['error' => 'Não foi possível duplicar a ficha.'], 500);
+        }
+    }
+
     if ($action === 'delete') {
         $id = (int) ($_POST['id'] ?? 0);
         protocols_require_active_protocol($pdo, $id);
