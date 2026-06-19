@@ -25,6 +25,7 @@ const statuses = [
 ];
 const PAGE_SIZE = 50;
 const SYNC_INTERVAL_MS = 8000;
+const VISIBLE_ANIMATION_LIMIT = 5;
 const statusIcons = {
     PARA_DISTRIBUIR: "inbox",
     EM_ANDAMENTO: "progress",
@@ -63,6 +64,7 @@ const state = {
     totalsByStatus: new Map(),
     previousCountsByStatus: new Map(),
     loadingByStatus: new Set(),
+    statusLoadTokens: new Map(),
     exhaustedByStatus: new Set(),
     current: null,
     currentLists: {
@@ -90,7 +92,6 @@ const state = {
     pendingDeleteNoteId: "",
     freshCardIds: new Set(),
     animationCleanupTimer: 0,
-    filterAnimationTimer: 0,
     filterMetadataRefreshTimer: 0,
     filterLoadToken: 0,
     archivedTransition: "",
@@ -107,7 +108,10 @@ const state = {
     activeCardFlights: new Set(),
     externalHighlightTimers: new Map(),
     protocolEventsConnected: false,
-    protocolEventSource: null
+    protocolEventSource: null,
+    boardLoadController: null,
+    boardLoadToken: 0,
+    activeDropStatus: ""
 };
 
 function loadArchivedVisibilityPreference() {
@@ -474,6 +478,16 @@ function protocolSnapshot(protocol = {}) {
     return keys.map((key) => [key, normalize(protocol?.[key])]);
 }
 
+function statusStateSignature(statusList = []) {
+    return JSON.stringify(
+        [...new Set(statusList.filter(Boolean))].map((status) => [
+            status,
+            state.totalsByStatus.get(status) ?? null,
+            (state.itemsByStatus.get(status) || []).map(protocolSnapshot)
+        ])
+    );
+}
+
 function protocolMatchesCurrentVersion(protocol = null) {
     if (!protocol || !state.current) return false;
     const currentUpdatedAt = normalize(state.current.updated_at);
@@ -745,10 +759,20 @@ function visibleStatusKeys() {
 function captureCardRects(statusList = []) {
     const wanted = new Set(statusList.filter(Boolean));
     const rects = new Map();
-    dom.board.querySelectorAll("[data-protocol-id]").forEach((card) => {
-        const status = card.closest("[data-status]")?.dataset.status || "";
+    dom.board.querySelectorAll(".protocol-column-cards").forEach((container) => {
+        const status = container.closest("[data-status]")?.dataset.status || "";
         if (wanted.size && !wanted.has(status)) return;
-        rects.set(String(card.dataset.protocolId || ""), card.getBoundingClientRect());
+
+        const visibleTop = Math.max(0, container.scrollTop - 120);
+        const visibleBottom = container.scrollTop + container.clientHeight + 120;
+        container.querySelectorAll("[data-protocol-id]").forEach((card) => {
+            const cardTop = card.offsetTop;
+            const cardBottom = cardTop + card.offsetHeight;
+            const id = String(card.dataset.protocolId || "");
+            const isDraggedCard = id && id === state.draggingProtocolId;
+            if (!isDraggedCard && (cardBottom < visibleTop || cardTop > visibleBottom)) return;
+            rects.set(id, card.getBoundingClientRect());
+        });
     });
     return rects;
 }
@@ -764,6 +788,7 @@ function captureColumnRects() {
 function animateColumnLayout(beforeRects) {
     if (shouldReduceMotion() || !beforeRects?.size) return;
     window.requestAnimationFrame(() => {
+        const moves = [];
         dom.board.querySelectorAll(".protocol-column[data-status]").forEach((column) => {
             const before = beforeRects.get(String(column.dataset.status || ""));
             if (!before) return;
@@ -773,15 +798,20 @@ function animateColumnLayout(beforeRects) {
             const dy = before.top - after.top;
             const moved = Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5;
             if (!moved) return;
+            moves.push({ column, dx, dy });
+        });
 
+        moves.forEach(({ column, dx, dy }) => {
             column.classList.add("is-column-layout-moving");
             column.style.transition = "none";
             column.style.transformOrigin = "left top";
-            column.style.transform = `translate(${dx}px, ${dy}px)`;
-            void column.offsetHeight;
+            column.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+        });
 
-            window.requestAnimationFrame(() => {
-                column.style.transition = "transform 560ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 240ms ease, border-color 240ms ease, opacity 240ms ease, filter 240ms ease";
+        if (!moves.length) return;
+        window.requestAnimationFrame(() => {
+            moves.forEach(({ column }) => {
+                column.style.transition = "transform 360ms cubic-bezier(0.16, 1, 0.3, 1)";
                 column.style.transform = "";
                 const cleanup = () => {
                     column.classList.remove("is-column-layout-moving");
@@ -790,7 +820,7 @@ function animateColumnLayout(beforeRects) {
                     column.style.removeProperty("transform");
                 };
                 column.addEventListener("transitionend", cleanup, { once: true });
-                window.setTimeout(cleanup, 680);
+                window.setTimeout(cleanup, 440);
             });
         });
     });
@@ -800,8 +830,8 @@ function animateCardFlight(card, before, after, id) {
     const protocolId = String(id || "");
     if (!protocolId || !card || !before || !after) return;
 
-    const dx = before.left - after.left;
-    const dy = before.top - after.top;
+    const dx = after.left - before.left;
+    const dy = after.top - before.top;
     const distance = Math.hypot(dx, dy);
     const duration = Math.min(620, Math.max(340, distance * 0.24));
     const clone = card.cloneNode(true);
@@ -814,8 +844,9 @@ function animateCardFlight(card, before, after, id) {
     clone.style.left = `${before.left}px`;
     clone.style.top = `${before.top}px`;
     clone.style.width = `${before.width}px`;
-    clone.style.minHeight = `${before.height}px`;
-    clone.style.transform = "translate3d(0, 0, 0) scale(1)";
+    clone.style.height = `${before.height}px`;
+    clone.style.transformOrigin = "left top";
+    clone.style.transform = "translate3d(0, 0, 0)";
 
     state.activeCardFlights.add(protocolId);
     card.classList.add("is-card-flight-target");
@@ -830,25 +861,17 @@ function animateCardFlight(card, before, after, id) {
 
     const handleFlightEnd = (event) => {
         if (event.target !== clone) return;
-        if (!["left", "top", "transform"].includes(event.propertyName)) return;
+        if (event.propertyName !== "transform") return;
         cleanup();
     };
 
     window.requestAnimationFrame(() => {
         clone.style.transition = [
-            `left ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-            `top ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-            `width ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
-            `min-height ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`,
             `opacity ${Math.min(260, duration)}ms ease`,
             `transform ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`
         ].join(", ");
-        clone.style.left = `${after.left}px`;
-        clone.style.top = `${after.top}px`;
-        clone.style.width = `${after.width}px`;
-        clone.style.minHeight = `${after.height}px`;
         clone.style.opacity = "0.98";
-        clone.style.transform = "translate3d(0, 0, 0) scale(1.003)";
+        clone.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
     });
 
     clone.addEventListener("transitionend", handleFlightEnd);
@@ -860,6 +883,7 @@ function animateCardLayout(beforeRects, options = {}) {
     const overlayIds = new Set((options.overlayIds || []).map((id) => String(id || "")).filter(Boolean));
     const canAnimateRegularCards = beforeRects.size <= 36;
     window.requestAnimationFrame(() => {
+        const moves = [];
         dom.board.querySelectorAll("[data-protocol-id]").forEach((card) => {
             const id = String(card.dataset.protocolId || "");
             const before = beforeRects.get(id);
@@ -876,15 +900,20 @@ function animateCardLayout(beforeRects, options = {}) {
             }
 
             if (!canAnimateRegularCards) return;
+            moves.push({ card, dx, dy });
+        });
 
+        moves.forEach(({ card, dx, dy }) => {
             card.classList.add("is-card-moving");
             card.style.transition = "none";
-            card.style.transform = `translate(${dx}px, ${dy}px)`;
+            card.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
             card.style.zIndex = "4";
-            void card.offsetHeight;
+        });
 
-            window.requestAnimationFrame(() => {
-                card.style.transition = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 170ms ease, border-color 170ms ease, background 170ms ease";
+        if (!moves.length) return;
+        window.requestAnimationFrame(() => {
+            moves.forEach(({ card }) => {
+                card.style.transition = "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
                 card.style.transform = "";
                 const cleanup = () => {
                     card.classList.remove("is-card-moving");
@@ -893,7 +922,7 @@ function animateCardLayout(beforeRects, options = {}) {
                     card.style.removeProperty("z-index");
                 };
                 card.addEventListener("transitionend", cleanup, { once: true });
-                window.setTimeout(cleanup, 320);
+                window.setTimeout(cleanup, 300);
             });
         });
     });
@@ -982,9 +1011,10 @@ function renderBoard(options = {}) {
     animateCardLayout(options.beforeRects, { overlayIds: options.overlayIds });
     if (options.settle && !shouldReduceMotion()) {
         dom.board.classList.remove("is-board-settling");
-        void dom.board.offsetWidth;
-        dom.board.classList.add("is-board-settling");
-        window.setTimeout(() => dom.board.classList.remove("is-board-settling"), 360);
+        window.requestAnimationFrame(() => {
+            dom.board.classList.add("is-board-settling");
+            window.setTimeout(() => dom.board.classList.remove("is-board-settling"), 360);
+        });
     }
 }
 
@@ -1023,10 +1053,9 @@ function animateColumnCounts(previousCounts, nextCounts) {
 function queueProtocolAnimationCleanup() {
     window.clearTimeout(state.animationCleanupTimer);
     state.animationCleanupTimer = window.setTimeout(() => {
-        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-card-filter-leaving, .is-hydrate-visible, .is-filter-visible").forEach((element) => {
-            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-card-filter-leaving", "is-hydrate-visible", "is-filter-visible");
+        dom.board.querySelectorAll(".is-card-entering, .is-card-leaving, .is-card-moving, .is-hydrate-visible, .is-filter-visible").forEach((element) => {
+            element.classList.remove("is-card-entering", "is-card-leaving", "is-card-moving", "is-hydrate-visible", "is-filter-visible");
             element.style.removeProperty("--protocol-card-exit-height");
-            element.style.removeProperty("--protocol-filter-delay");
             element.style.removeProperty("--protocol-hydrate-delay");
             element.style.removeProperty("--protocol-filter-enter-delay");
             element.style.removeProperty("transition");
@@ -1042,7 +1071,7 @@ function shouldReduceMotion() {
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 }
 
-function markVisibleCardsForAnimation(className, delayProperty = "--protocol-hydrate-delay", maxVisiblePerColumn = 8) {
+function markVisibleCardsForAnimation(className, delayProperty = "--protocol-hydrate-delay", maxVisiblePerColumn = VISIBLE_ANIMATION_LIMIT) {
     if (!dom.board || shouldReduceMotion()) return;
 
     const viewport = {
@@ -1054,22 +1083,19 @@ function markVisibleCardsForAnimation(className, delayProperty = "--protocol-hyd
 
     dom.board.querySelectorAll(".protocol-column-cards").forEach((container) => {
         const containerRect = container.getBoundingClientRect();
-        const visibleArea = {
-            top: Math.max(containerRect.top, viewport.top),
-            left: Math.max(containerRect.left, viewport.left),
-            right: Math.min(containerRect.right, viewport.right),
-            bottom: Math.min(containerRect.bottom, viewport.bottom)
-        };
-        if (visibleArea.bottom <= visibleArea.top || visibleArea.right <= visibleArea.left) return;
+        if (containerRect.bottom <= viewport.top
+            || containerRect.top >= viewport.bottom
+            || containerRect.right <= viewport.left
+            || containerRect.left >= viewport.right) return;
 
         let visibleIndex = 0;
+        const visibleTop = container.scrollTop;
+        const visibleBottom = visibleTop + container.clientHeight;
         const cards = [...container.querySelectorAll(".protocol-card:not(.protocol-skeleton-card)")];
         for (const card of cards) {
-            const rect = card.getBoundingClientRect();
-            const isVisible = rect.bottom > visibleArea.top
-                && rect.top < visibleArea.bottom
-                && rect.right > visibleArea.left
-                && rect.left < visibleArea.right;
+            const cardTop = card.offsetTop;
+            const cardBottom = cardTop + card.offsetHeight;
+            const isVisible = cardBottom > visibleTop && cardTop < visibleBottom;
 
             if (isVisible) {
                 card.classList.add(className);
@@ -1077,7 +1103,7 @@ function markVisibleCardsForAnimation(className, delayProperty = "--protocol-hyd
                 visibleIndex += 1;
             }
 
-            if (visibleIndex >= maxVisiblePerColumn && rect.top > visibleArea.bottom) break;
+            if (visibleIndex >= maxVisiblePerColumn || cardTop > visibleBottom) break;
         }
     });
 }
@@ -1231,7 +1257,7 @@ function resetBoardState() {
 
 function markVisibleCardsAsFresh() {
     visibleStatuses().forEach(([status]) => {
-        (state.itemsByStatus.get(status) || []).forEach((item) => {
+        (state.itemsByStatus.get(status) || []).slice(0, VISIBLE_ANIMATION_LIMIT).forEach((item) => {
             const id = String(item.id || "");
             if (id) state.freshCardIds.add(id);
         });
@@ -1242,7 +1268,7 @@ function markStatusCardsAsFresh(statusList = []) {
     const wanted = new Set(statusList.filter(Boolean));
     if (!wanted.size) return;
     wanted.forEach((status) => {
-        (state.itemsByStatus.get(status) || []).forEach((item) => {
+        (state.itemsByStatus.get(status) || []).slice(0, VISIBLE_ANIMATION_LIMIT).forEach((item) => {
             const id = String(item.id || "");
             if (id) state.freshCardIds.add(id);
         });
@@ -1254,8 +1280,11 @@ async function loadStatus(status, options = {}) {
     const refreshLoaded = Boolean(options.refreshLoaded);
     const background = Boolean(options.background);
     const silent = Boolean(options.silent);
-    if (state.loadingByStatus.has(status)) return;
+    const supersede = Boolean(options.supersede);
+    if (state.loadingByStatus.has(status) && !supersede) return;
     if (append && state.exhaustedByStatus.has(status)) return;
+    const loadToken = (state.statusLoadTokens.get(status) || 0) + 1;
+    state.statusLoadTokens.set(status, loadToken);
 
     const existing = state.itemsByStatus.get(status) || [];
     const offset = append ? existing.length : 0;
@@ -1276,7 +1305,8 @@ async function loadStatus(status, options = {}) {
         renderBoardPreservingScroll(status);
     }
     try {
-        const data = await apiGet("protocolos", params);
+        const data = await apiGet("protocolos", params, { signal: options.signal });
+        if (state.statusLoadTokens.get(status) !== loadToken) return;
         const items = Array.isArray(data.items) ? data.items : [];
         const total = Number(data.total);
         if (data.server_now) {
@@ -1307,6 +1337,7 @@ async function loadStatus(status, options = {}) {
             state.exhaustedByStatus.delete(status);
         }
     } finally {
+        if (state.statusLoadTokens.get(status) !== loadToken) return;
         state.loadingByStatus.delete(status);
         if (!silent && !background && state.boardReady) {
             renderBoardPreservingScroll(status);
@@ -1328,6 +1359,12 @@ async function loadBoard(options = {}) {
         || skipLayoutAnimation
         || filterTransition;
     const freshStatuses = Array.isArray(options.freshStatuses) ? options.freshStatuses : [];
+    if (reset) {
+        state.boardLoadController?.abort();
+        state.boardLoadController = new AbortController();
+    }
+    const controller = state.boardLoadController;
+    const loadToken = ++state.boardLoadToken;
     const wasReady = state.boardReady;
     const hasInitialSkeleton = !wasReady && Boolean(dom.board.querySelector(".protocol-skeleton-card"));
     const softRefresh = wasReady && reset;
@@ -1354,8 +1391,11 @@ async function loadBoard(options = {}) {
     try {
         await Promise.all(visibleStatuses().map(([status]) => loadStatus(status, {
             refreshLoaded,
-            silent: softRefresh
+            silent: softRefresh,
+            supersede: reset,
+            signal: controller?.signal
         })));
+        if (loadToken !== state.boardLoadToken) return;
         if (animateResults) {
             markVisibleCardsAsFresh();
         } else if (!wasReady) {
@@ -1365,8 +1405,10 @@ async function loadBoard(options = {}) {
         }
         state.boardReady = true;
     } catch (error) {
+        if (error?.name === "AbortError" || loadToken !== state.boardLoadToken) return;
         state.lastError = error.message || "Falha ao carregar dados.";
     } finally {
+        if (loadToken !== state.boardLoadToken) return;
         state.loadingBoard = false;
         dom.board.classList.remove("is-soft-refreshing");
         renderBoard({
@@ -1417,14 +1459,18 @@ async function syncChanges() {
             upsertSyncedProtocol(item).forEach((status) => touchedStatuses.add(status));
         });
 
-        renderStatusColumnsPreservingScroll([...touchedStatuses]);
+        const touched = [...touchedStatuses];
+        renderStatusColumnsPreservingScroll(touched);
+        const renderedSignature = statusStateSignature(touched);
 
         await Promise.all(
-            [...touchedStatuses]
+            touched
                 .filter((status) => isStatusVisible(status))
                 .map((status) => loadStatus(status, { refreshLoaded: true, background: true }))
         );
-        renderStatusColumnsPreservingScroll([...touchedStatuses]);
+        if (renderedSignature !== statusStateSignature(touched)) {
+            renderStatusColumnsPreservingScroll(touched);
+        }
     } catch (error) {
         console.error(error);
     } finally {
@@ -1473,45 +1519,15 @@ function connectProtocolEvents() {
     state.protocolEventsConnected = false;
 }
 
-function animateCardsBeforeFilterLoad() {
-    if (!state.boardReady || shouldReduceMotion()) return Promise.resolve();
-    const cards = [...dom.board.querySelectorAll(".protocol-card:not(.protocol-skeleton-card)")];
-    if (!cards.length) return Promise.resolve();
-
-    window.clearTimeout(state.filterAnimationTimer);
-    const maxDelay = Math.min(cards.length - 1, 10) * 12;
-    const duration = maxDelay + 220;
-    cards.forEach((card, index) => {
-        card.style.setProperty("--protocol-filter-delay", `${Math.min(index, 10) * 12}ms`);
-        card.classList.remove("is-card-filter-leaving");
-        void card.offsetWidth;
-        card.classList.add("is-card-filter-leaving");
-    });
-    state.filterAnimationTimer = window.setTimeout(() => {
-        cards.forEach((card) => {
-            card.classList.remove("is-card-filter-leaving");
-            card.style.removeProperty("--protocol-filter-delay");
-        });
-    }, duration + 80);
-
-    return new Promise((resolve) => {
-        window.setTimeout(resolve, duration);
-    });
-}
-
 function scheduleLoad(delay = 180, options = {}) {
     window.clearTimeout(scheduleLoad.timer);
-    const animateFilter = Boolean(options.animateFilter);
     const token = ++state.filterLoadToken;
     scheduleLoad.timer = window.setTimeout(async () => {
         try {
-            if (animateFilter) {
-                await animateCardsBeforeFilterLoad();
-            }
             if (token !== state.filterLoadToken) return;
             await loadBoard({
                 reset: true,
-                animateResults: animateFilter,
+                animateResults: false,
                 skipLayoutAnimation: Boolean(options.skipLayoutAnimation),
                 filterTransition: Boolean(options.filterTransition)
             });
@@ -1539,7 +1555,7 @@ function flushDeferredBoardRefresh() {
     scheduleLoad(80);
 }
 
-function scheduleSearchLoad(delay = 260) {
+function scheduleSearchLoad(delay = 180) {
     window.clearTimeout(scheduleLoad.timer);
     const token = ++state.filterLoadToken;
     scheduleLoad.timer = window.setTimeout(async () => {
@@ -2485,6 +2501,9 @@ function clearDropTargets(options = {}) {
             element.remove();
         });
     }
+    if (!options.keepActiveStatus) {
+        state.activeDropStatus = "";
+    }
 }
 
 function showDragPlaceholder(zone) {
@@ -2510,10 +2529,10 @@ function setArchiveMotion(mode = "") {
     dom.board.classList.add("is-archive-transitioning", `is-archive-${mode}`);
     state.archiveMotionTimer = window.setTimeout(() => {
         dom.board.classList.remove("is-archive-transitioning", "is-archive-expanding", "is-archive-collapsing");
-    }, 760);
+    }, 460);
 }
 
-function loadBoardAfterArchiveToggle(delay = 120, animateResults = false, freshStatuses = []) {
+function loadBoardAfterArchiveToggle(delay = 80, animateResults = false, freshStatuses = []) {
     window.clearTimeout(state.archivedToggleTimer);
     state.archivedToggleTimer = window.setTimeout(() => {
         loadBoard({ reset: true, refreshLoaded: true, animateResults, freshStatuses, suppressSoftRefreshIndicator: true }).catch(console.error);
@@ -2532,6 +2551,7 @@ function setArchivedVisibility(show) {
     }
 
     if (show) {
+        const beforeColumnRects = captureColumnRects();
         const archivedAlreadyLoaded = (state.itemsByStatus.get("ARQUIVADOS") || []).length > 0;
         if (archivedAlreadyLoaded) {
             markStatusCardsAsFresh(["ARQUIVADOS"]);
@@ -2542,9 +2562,10 @@ function setArchivedVisibility(show) {
         setArchiveMotion("expanding");
         renderBoard({
             preserveScroll: true,
-            settle: false
+            settle: false,
+            beforeColumnRects
         });
-        loadBoardAfterArchiveToggle(620, false, archivedAlreadyLoaded ? [] : ["ARQUIVADOS"]);
+        loadBoardAfterArchiveToggle(archivedAlreadyLoaded ? 280 : 40, false, archivedAlreadyLoaded ? [] : ["ARQUIVADOS"]);
         return;
     }
 
@@ -2557,22 +2578,24 @@ function setArchivedVisibility(show) {
             preserveScroll: true,
             settle: false
         });
-        loadBoardAfterArchiveToggle(620, false);
+        loadBoardAfterArchiveToggle(260, false);
         return;
     }
 
     setArchiveMotion("collapsing");
     archivedColumn.classList.add("is-column-hiding");
     state.archivedToggleTimer = window.setTimeout(() => {
+        const beforeColumnRects = captureColumnRects();
         state.showArchived = false;
         state.archivedTransition = "";
         renderActiveFilters();
         renderBoard({
             preserveScroll: true,
-            settle: false
+            settle: false,
+            beforeColumnRects
         });
-        loadBoardAfterArchiveToggle(620, false);
-    }, shouldReduceMotion() ? 0 : 580);
+        loadBoardAfterArchiveToggle(260, false);
+    }, shouldReduceMotion() ? 0 : 220);
 }
 
 function bindBoardEvents() {
@@ -2631,7 +2654,10 @@ function bindBoardEvents() {
         if (zone) {
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
-            clearDropTargets({ keepPlaceholder: true });
+            const nextStatus = zone.dataset.dropStatus || "";
+            if (state.activeDropStatus === nextStatus) return;
+            clearDropTargets({ keepPlaceholder: true, keepActiveStatus: true });
+            state.activeDropStatus = nextStatus;
             zone.classList.add("is-drop-target");
             showDragPlaceholder(zone);
         }

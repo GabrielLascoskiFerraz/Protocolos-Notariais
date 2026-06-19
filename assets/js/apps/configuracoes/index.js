@@ -9,12 +9,10 @@ const serverForm = document.getElementById("settings-server-form");
 const serverStatus = document.getElementById("settings-server-status");
 const serverReload = document.getElementById("settings-server-reload");
 const personalForm = document.getElementById("settings-personal-form");
-const personalStatus = document.getElementById("settings-personal-status");
 const personalReset = document.getElementById("settings-personal-reset");
 const fontScaleLabel = document.getElementById("settings-font-scale-label");
 const densityPreview = document.querySelector("[data-settings-density-preview]");
 const densityPreviewLabel = document.getElementById("settings-density-preview-label");
-let personalStatusTimer = 0;
 
 const defaultPreferences = {
     theme: "system",
@@ -91,16 +89,6 @@ function updateDensityPreview(density) {
     if (densityPreviewLabel) densityPreviewLabel.textContent = densityLabel(density);
 }
 
-function setPersonalStatus(message, mode = "success") {
-    window.clearTimeout(personalStatusTimer);
-    setStatus(personalStatus, message, mode);
-    if (mode === "success") {
-        personalStatusTimer = window.setTimeout(() => {
-            setStatus(personalStatus, "Salvo automaticamente");
-        }, 1800);
-    }
-}
-
 function fillPersonalForm(preferences = loadUserPreferences()) {
     if (!personalForm) return;
     personalForm.elements.theme.value = preferences.theme;
@@ -152,13 +140,11 @@ async function savePersonalPreferencesFromForm(event) {
             preferences.health.browserNotifications = false;
             personalForm.elements.health_browser_notifications.checked = false;
             saveUserPreferences(preferences);
-            setPersonalStatus("Notificação não autorizada", "error");
             return;
         }
     }
 
     saveUserPreferences(preferences);
-    setPersonalStatus("Salvo automaticamente", "success");
 }
 
 serverForm?.addEventListener("submit", async (event) => {
@@ -206,7 +192,6 @@ personalForm?.addEventListener("submit", (event) => {
 personalReset?.addEventListener("click", () => {
     const preferences = saveUserPreferences(defaultPreferences);
     fillPersonalForm(preferences);
-    setPersonalStatus("Padrão restaurado", "success");
 });
 
 fillPersonalForm();

@@ -19,6 +19,7 @@ function protocolos_nav_items(): array
     return [
         ['group' => 'Trabalho', 'href' => 'index.php', 'label' => 'Protocolos', 'short' => 'Protocolos', 'icon' => 'protocols'],
         ['group' => 'Trabalho', 'href' => 'calendario.php', 'label' => 'Consultar Agenda', 'short' => 'Agenda', 'icon' => 'calendar'],
+        ['group' => 'Trabalho', 'href' => 'arvores.php', 'label' => 'Árvores Genealógicas', 'short' => 'Árvores', 'icon' => 'tree'],
         ['group' => 'Ferramentas', 'href' => 'certidoes.php', 'label' => 'Leitor de Certidões', 'short' => 'Certidões', 'icon' => 'certificate'],
         ['group' => 'Ferramentas', 'href' => 'gerador-qrcode.php', 'label' => 'Gerador de QR Code', 'short' => 'QR Code', 'icon' => 'qrcode'],
         ['group' => 'Sistema', 'href' => 'configuracoes.php', 'label' => 'Configurações', 'short' => 'Configurações', 'icon' => 'settings'],
@@ -32,6 +33,7 @@ function protocolos_nav_icon_markup(string $icon): string
         'calendar' => '<rect x="6.5" y="7.5" width="15" height="13" rx="2"></rect><path d="M10 5.5v4"></path><path d="M18 5.5v4"></path><path d="M6.5 11h15"></path><path d="M10 14h2.2M15 14h2.2M10 17h2.2M15 17h2.2"></path>',
         'qrcode' => '<path d="M7.5 7.5h5v5h-5z"></path><path d="M15.5 7.5h5v5h-5z"></path><path d="M7.5 15.5h5v5h-5z"></path><path d="M16 16h1.8v1.8H16z"></path><path d="M19.3 16h1.2v4.5h-4.5v-1.2"></path>',
         'certificate' => '<path d="M8.5 6.5h11a2 2 0 0 1 2 2v13l-3-1.5-3 1.5-3-1.5-3 1.5-3-1.5v-13a2 2 0 0 1 2-2Z"></path><path d="M10.5 10.5h7"></path><path d="M10.5 13.5h7"></path><path d="M10.5 16.5h4"></path>',
+        'tree' => '<path d="M14 23V10"></path><path d="M14 15c-4-.6-6.8-3.1-7.6-6.6 4.4-.4 7.1 2 7.6 6.6Z"></path><path d="M14 18.5c4.6-.5 7.5-3.1 8.3-7-4.8-.4-7.8 2.2-8.3 7Z"></path><path d="M14 10.5c2.8-.5 4.5-2.5 4.6-5.4-3.1.1-4.9 2.2-4.6 5.4Z"></path><path d="M10 23h8"></path>',
         'settings' => '<path d="M14 9.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z"></path><path d="M14 5.4v2.1M14 20.5v2.1M5.4 14h2.1M20.5 14h2.1M7.9 7.9l1.5 1.5M18.6 18.6l1.5 1.5M20.1 7.9l-1.5 1.5M9.4 18.6l-1.5 1.5"></path>',
         'tools' => '<path d="M7 9.5h7"></path><path d="M18 9.5h3"></path><circle cx="16" cy="9.5" r="1.8"></circle><path d="M7 14h3"></path><path d="M14 14h7"></path><circle cx="12" cy="14" r="1.8"></circle><path d="M7 18.5h8"></path><path d="M19 18.5h2"></path><circle cx="17" cy="18.5" r="1.8"></circle>',
     ];
@@ -101,7 +103,8 @@ function protocolos_render_head(string $title, string $description, ?string $scr
 {
     $baseHref = protocolos_base_href();
     $bodyClass = trim('protocolos-product-ui ' . (string) ($options['body_class'] ?? ''));
-    $cssPath = 'assets/css/protocolos-product.css';
+    $foundationCssPath = 'assets/css/protocolos-foundation.css';
+    $redesignCssPath = 'assets/css/protocolos-redesign.css';
     $faviconPath = 'assets/img/favicon.svg';
     $faviconVersion = protocolos_asset_version($faviconPath);
     $extraHead = $options['extra_head'] ?? [];
@@ -138,7 +141,8 @@ function protocolos_render_head(string $title, string $description, ?string $scr
             } catch (error) {}
         })();
     </script>
-    <link rel="stylesheet" href="<?= htmlspecialchars($cssPath . '?v=' . protocolos_asset_version($cssPath), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars($foundationCssPath . '?v=' . protocolos_asset_version($foundationCssPath), ENT_QUOTES, 'UTF-8') ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars($redesignCssPath . '?v=' . protocolos_asset_version($redesignCssPath), ENT_QUOTES, 'UTF-8') ?>">
     <script>
         window.BASE_URL = <?= json_encode($baseHref) ?>;
         window.PROTOCOLOS_BASE_URL = window.BASE_URL;
@@ -162,61 +166,20 @@ function protocolos_render_app_start(string $activeHref, string $eyebrow, string
     $navItems = protocolos_nav_items();
     ?>
     <div class="protocolos-studio">
-        <header class="studio-topbar">
+        <aside class="studio-topbar">
             <div class="studio-identity">
                 <?= protocolos_brand_markup() ?>
             </div>
 
             <nav class="studio-switcher" aria-label="Navegação principal">
-<?php
-$dropdownGroups = [
-    'Ferramentas' => ['label' => 'Ferramentas', 'icon' => 'tools', 'aria' => 'Ferramentas dos Protocolos'],
-];
-$dropdownRendered = [];
-$currentGroup = null;
-foreach ($navItems as $item):
-    $group = (string) ($item['group'] ?? '');
-    if (isset($dropdownGroups[$group])):
-        if (!($dropdownRendered[$group] ?? false)):
-            $dropdownRendered[$group] = true;
-            $dropdownItems = array_values(array_filter($navItems, static fn (array $navItem): bool => ($navItem['group'] ?? '') === $group));
-            $dropdownActive = in_array($activeHref, array_column($dropdownItems, 'href'), true);
-            $dropdownMeta = $dropdownGroups[$group];
-?>
-                <div class="studio-tools-menu<?= $dropdownActive ? ' is-active' : '' ?>">
-                    <button class="studio-switcher-link studio-tools-trigger<?= $dropdownActive ? ' is-active' : '' ?>" type="button" aria-haspopup="true" aria-expanded="false">
-                        <?= protocolos_nav_icon_markup((string) $dropdownMeta['icon']) ?>
-                        <span><?= htmlspecialchars((string) $dropdownMeta['label'], ENT_QUOTES, 'UTF-8') ?></span>
-                        <span class="studio-tools-chevron" aria-hidden="true">⌄</span>
-                    </button>
-                    <div class="studio-tools-panel" role="menu" aria-label="<?= htmlspecialchars((string) $dropdownMeta['aria'], ENT_QUOTES, 'UTF-8') ?>">
-<?php foreach ($dropdownItems as $tool): ?>
-                        <a class="studio-tools-link<?= $activeHref === $tool['href'] ? ' is-active' : '' ?>" href="<?= htmlspecialchars($tool['href'], ENT_QUOTES, 'UTF-8') ?>" role="menuitem">
-                            <?= protocolos_nav_icon_markup((string) ($tool['icon'] ?? 'protocols')) ?>
-                            <span>
-                                <strong><?= htmlspecialchars($tool['short'], ENT_QUOTES, 'UTF-8') ?></strong>
-                                <small><?= htmlspecialchars($tool['label'], ENT_QUOTES, 'UTF-8') ?></small>
-                            </span>
-                        </a>
-<?php endforeach; ?>
-                    </div>
-                </div>
-<?php
-        endif;
-        continue;
-    endif;
-    if ($group !== '' && $group !== $currentGroup):
-        $currentGroup = $group;
-?>
-                <span class="studio-switcher-group"><?= htmlspecialchars($currentGroup, ENT_QUOTES, 'UTF-8') ?></span>
-<?php endif; ?>
-                <a class="studio-switcher-link<?= $activeHref === $item['href'] ? ' is-active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>">
+<?php foreach ($navItems as $item): ?>
+                <a class="studio-switcher-link<?= $activeHref === $item['href'] ? ' is-active' : '' ?>" href="<?= htmlspecialchars($item['href'], ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars($item['label'], ENT_QUOTES, 'UTF-8') ?>" data-nav-label="<?= htmlspecialchars($item['short'], ENT_QUOTES, 'UTF-8') ?>">
                     <?= protocolos_nav_icon_markup((string) ($item['icon'] ?? 'protocols')) ?>
                     <span><?= htmlspecialchars($item['short'], ENT_QUOTES, 'UTF-8') ?></span>
                 </a>
 <?php endforeach; ?>
             </nav>
-        </header>
+        </aside>
 
         <div class="studio-workspace">
 <?php if (!$hideHeader): ?>

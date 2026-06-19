@@ -48,64 +48,31 @@ protocolos_render_app_start(
     'Configurações',
     'Ajuste primeiro as preferências deste navegador e, abaixo, os parâmetros globais do servidor.',
     [],
-    ['page_class' => 'page-settings']
+    ['page_class' => 'page-settings', 'hide_header' => true]
 );
 ?>
-    <section class="settings-workspace" aria-label="Configurações dos Protocolos">
-        <article class="surface settings-panel settings-server-panel">
-            <div class="surface-head">
-                <div class="protocol-section-heading">
-                    <span class="protocol-section-icon" aria-hidden="true"><?= protocolos_tool_icon_markup('server', 'protocol-inline-icon') ?></span>
-                    <div>
-                        <span class="eyebrow">Servidor</span>
-                        <h2>Configurações globais</h2>
-                        <p>Valem para todos os usuários que acessam este sistema.</p>
-                    </div>
+    <section class="settings-page" aria-label="Configurações dos Protocolos">
+        <header class="settings-command">
+            <div class="settings-command-copy">
+                <span class="settings-command-icon" aria-hidden="true"><?= protocolos_settings_icon('system') ?></span>
+                <div>
+                    <span class="eyebrow">Preferências</span>
+                    <h1>Configurações</h1>
+                    <p>Personalize este navegador e ajuste os parâmetros compartilhados do sistema.</p>
                 </div>
-                <span class="status-pill status-pill-soft" id="settings-server-status" aria-live="polite">Carregado</span>
             </div>
+        </header>
 
-            <form class="settings-form" id="settings-server-form" autocomplete="off">
-                <div class="compact-form-grid compact-form-grid-2">
-                    <label class="field field-span-2">
-                        <span>URL da agenda ICS</span>
-                        <input name="calendar_ics_url" type="url" value="<?= htmlspecialchars((string) $settings['calendar_ics_url'], ENT_QUOTES, 'UTF-8') ?>" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
-                    </label>
-                    <label class="field">
-                        <span>Cache da agenda em segundos</span>
-                        <input name="calendar_cache_ttl_seconds" type="number" min="60" max="21600" step="60" value="<?= (int) $settings['calendar_cache_ttl_seconds'] ?>">
-                    </label>
-                    <input name="documentos_max_items" type="hidden" value="<?= (int) $settings['documentos_max_items'] ?>">
-                    <input name="documentos_base_path" type="hidden" value="<?= htmlspecialchars((string) $settings['documentos_base_path'], ENT_QUOTES, 'UTF-8') ?>">
-                    <input name="documentos_extra_base_paths" type="hidden" value="<?= htmlspecialchars(implode("\n", $settings['documentos_extra_base_paths'] ?? []), ENT_QUOTES, 'UTF-8') ?>">
-                </div>
-                <div class="surface-actions settings-actions">
-                    <button class="button button-secondary" type="button" id="settings-server-reload">Recarregar</button>
-                    <button class="button button-primary" type="submit">Salvar globais</button>
-                </div>
-            </form>
-        </article>
-
-        <article class="surface settings-panel settings-personal-panel">
-            <div class="surface-head">
-                <div class="protocol-section-heading">
-                    <span class="protocol-section-icon" aria-hidden="true"><?= protocolos_tool_icon_markup('file', 'protocol-inline-icon') ?></span>
-                    <div>
-                        <span class="eyebrow">Este navegador</span>
-                        <h2>Preferências visuais e lembretes</h2>
-                        <p>Ficam salvas apenas no navegador do usuário atual.</p>
-                    </div>
-                </div>
-                <span class="status-pill status-pill-soft" id="settings-personal-status" aria-live="polite">Salvo automaticamente</span>
-            </div>
-
-            <form class="settings-form" id="settings-personal-form" autocomplete="off">
-                <div class="settings-card-grid">
-                    <section class="settings-subpanel settings-appearance-panel">
-                        <div class="settings-subpanel-title">
-                            <strong>Aparência</strong>
-                            <small>Modo escuro, tamanho de fonte e densidade da interface.</small>
-                        </div>
+        <div class="settings-content">
+                <form class="settings-form settings-personal-form" id="settings-personal-form" autocomplete="off">
+                    <section class="settings-section" id="settings-appearance">
+                        <header class="settings-section-head">
+                            <span class="settings-section-number">01</span>
+                            <div>
+                                <h2>Aparência</h2>
+                                <p>Tema, densidade e escala de leitura deste navegador.</p>
+                            </div>
+                        </header>
 
                         <div class="settings-choice-layout">
                             <fieldset class="settings-choice-fieldset">
@@ -151,60 +118,61 @@ protocolos_render_app_start(
                             </fieldset>
                         </div>
 
-                        <section class="settings-density-preview" data-settings-density-preview="comfortable" aria-live="polite">
-                            <div>
-                                <strong>Prévia da densidade</strong>
-                                <small id="settings-density-preview-label">Espaçamento equilibrado para uso diário.</small>
-                            </div>
-                            <div class="settings-density-preview-card" aria-hidden="true">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                        </section>
-
-                        <label class="settings-range-card">
-                            <span class="settings-range-head">
-                                <span class="settings-range-icon" aria-hidden="true"><?= protocolos_settings_icon('font') ?></span>
-                                <span class="settings-range-copy">
-                                    <strong>Tamanho da fonte</strong>
-                                    <small>Ajusta textos e componentes neste navegador.</small>
+                        <div class="settings-reading-row">
+                            <label class="settings-range-card">
+                                <span class="settings-range-head">
+                                    <span class="settings-range-icon" aria-hidden="true"><?= protocolos_settings_icon('font') ?></span>
+                                    <span class="settings-range-copy">
+                                        <strong>Tamanho da fonte</strong>
+                                        <small>Ajusta textos e componentes.</small>
+                                    </span>
+                                    <strong class="settings-range-value" id="settings-font-scale-label">100%</strong>
                                 </span>
-                                <strong class="settings-range-value" id="settings-font-scale-label">100%</strong>
-                            </span>
                                 <input name="fontScale" type="range" min="0.9" max="1.18" step="0.01">
-                        </label>
+                            </label>
+
+                            <section class="settings-density-preview" data-settings-density-preview="comfortable" aria-live="polite">
+                                <div>
+                                    <strong>Prévia da densidade</strong>
+                                    <small id="settings-density-preview-label">Espaçamento equilibrado para uso diário.</small>
+                                </div>
+                                <div class="settings-density-preview-card" aria-hidden="true">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </section>
+                        </div>
                     </section>
 
-                    <section class="settings-subpanel settings-health-panel">
-                        <div class="settings-subpanel-title">
-                            <strong>Lembretes leves</strong>
-                            <small>Pausas discretas para visão, postura, movimento, alongamento e hidratação.</small>
+                    <section class="settings-section" id="settings-health">
+                        <header class="settings-section-head">
+                            <span class="settings-section-number">02</span>
+                            <div>
+                                <h2>Lembretes leves</h2>
+                                <p>Pausas locais para visão, postura, movimento e hidratação.</p>
+                            </div>
+                        </header>
+
+                        <div class="settings-health-primary">
+                            <label class="settings-switch-line settings-feature-card">
+                                <input name="health_enabled" type="checkbox">
+                                <?= protocolos_settings_icon('health') ?>
+                                <span><strong>Ativar lembretes</strong><small>Respeita o limite diário configurado.</small></span>
+                            </label>
+                            <label class="settings-switch-line settings-feature-card">
+                                <input name="health_browser_notifications" type="checkbox">
+                                <?= protocolos_settings_icon('bell') ?>
+                                <span><strong>Notificações do navegador</strong><small>Avisa quando a aba estiver em segundo plano.</small></span>
+                            </label>
+                            <label class="field settings-intensity-field">
+                                <span>Intensidade</span>
+                                <select name="health_intensity">
+                                    <option value="discreet">Discreta</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="frequent">Frequente</option>
+                                </select>
+                            </label>
                         </div>
-                        <label class="settings-switch-line settings-feature-card">
-                            <input name="health_enabled" type="checkbox">
-                            <?= protocolos_settings_icon('health') ?>
-                            <span>
-                                <strong>Ativar lembretes neste navegador</strong>
-                                <small>Os avisos são locais e respeitam limite diário.</small>
-                            </span>
-                        </label>
-                        <label class="settings-switch-line settings-feature-card">
-                            <input name="health_browser_notifications" type="checkbox">
-                            <?= protocolos_settings_icon('bell') ?>
-                            <span>
-                                <strong>Usar notificação do navegador quando a aba estiver em segundo plano</strong>
-                                <small>O navegador pode pedir permissão.</small>
-                            </span>
-                        </label>
-                        <label class="field">
-                            <span>Intensidade</span>
-                            <select name="health_intensity">
-                                <option value="discreet">Discreta</option>
-                                <option value="normal">Normal</option>
-                                <option value="frequent">Frequente</option>
-                            </select>
-                        </label>
+
                         <div class="settings-health-type-grid">
                             <label class="settings-switch-line settings-feature-card settings-health-type"><input name="health_type_vision" type="checkbox"><?= protocolos_settings_icon('vision') ?><span><strong>Visão</strong><small>Descansar os olhos.</small></span></label>
                             <label class="settings-switch-line settings-feature-card settings-health-type"><input name="health_type_posture" type="checkbox"><?= protocolos_settings_icon('posture') ?><span><strong>Postura</strong><small>Ajustar cadeira e pescoço.</small></span></label>
@@ -212,13 +180,46 @@ protocolos_render_app_start(
                             <label class="settings-switch-line settings-feature-card settings-health-type"><input name="health_type_stretch" type="checkbox"><?= protocolos_settings_icon('stretch') ?><span><strong>Alongar</strong><small>Soltar punhos e ombros.</small></span></label>
                             <label class="settings-switch-line settings-feature-card settings-health-type"><input name="health_type_hydration" type="checkbox"><?= protocolos_settings_icon('hydration') ?><span><strong>Água</strong><small>Lembrar hidratação.</small></span></label>
                         </div>
-                    </section>
-                </div>
 
-                <div class="surface-actions settings-actions">
-                    <button class="button button-secondary" type="button" id="settings-personal-reset">Restaurar padrão local</button>
-                </div>
-            </form>
-        </article>
+                        <div class="settings-section-actions">
+                            <button class="button button-secondary" type="button" id="settings-personal-reset">Restaurar padrão local</button>
+                        </div>
+                    </section>
+                </form>
+
+                <form class="settings-form settings-server-form" id="settings-server-form" autocomplete="off">
+                    <section class="settings-section settings-server-section" id="settings-server">
+                        <header class="settings-section-head">
+                            <span class="settings-section-number">03</span>
+                            <div>
+                                <h2>Servidor</h2>
+                                <p>Parâmetros globais compartilhados por todos os usuários.</p>
+                            </div>
+                            <span class="settings-server-state" id="settings-server-status" aria-live="polite">Carregado</span>
+                        </header>
+
+                        <div class="settings-server-grid">
+                            <label class="field settings-calendar-url">
+                                <span>URL da agenda ICS</span>
+                                <input name="calendar_ics_url" type="url" value="<?= htmlspecialchars((string) $settings['calendar_ics_url'], ENT_QUOTES, 'UTF-8') ?>" placeholder="https://calendar.google.com/calendar/ical/.../basic.ics">
+                            </label>
+                            <label class="field">
+                                <span>Cache da agenda</span>
+                                <span class="settings-input-with-unit">
+                                    <input name="calendar_cache_ttl_seconds" type="number" min="60" max="21600" step="60" value="<?= (int) $settings['calendar_cache_ttl_seconds'] ?>">
+                                    <small>segundos</small>
+                                </span>
+                            </label>
+                            <input name="documentos_max_items" type="hidden" value="<?= (int) $settings['documentos_max_items'] ?>">
+                            <input name="documentos_base_path" type="hidden" value="<?= htmlspecialchars((string) $settings['documentos_base_path'], ENT_QUOTES, 'UTF-8') ?>">
+                            <input name="documentos_extra_base_paths" type="hidden" value="<?= htmlspecialchars(implode("\n", $settings['documentos_extra_base_paths'] ?? []), ENT_QUOTES, 'UTF-8') ?>">
+                        </div>
+                        <div class="settings-section-actions">
+                            <button class="button button-secondary" type="button" id="settings-server-reload">Recarregar</button>
+                            <button class="button button-primary" type="submit">Salvar globais</button>
+                        </div>
+                    </section>
+                </form>
+        </div>
     </section>
 <?php protocolos_render_app_end(); ?>

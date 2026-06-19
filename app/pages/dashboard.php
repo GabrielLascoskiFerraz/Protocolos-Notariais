@@ -91,6 +91,9 @@ protocolos_render_app_start(
     <section class="protocols-native-shell">
         <section class="surface protocols-control-panel">
             <div class="protocols-filter-line">
+                <div class="protocols-page-title" aria-label="Página atual">
+                    <h1>Protocolos</h1>
+                </div>
                 <label class="field protocols-search-field">
                     <span class="protocols-field-label">
                         <span class="protocols-filter-icon" data-protocol-icon="search" aria-hidden="true"></span>

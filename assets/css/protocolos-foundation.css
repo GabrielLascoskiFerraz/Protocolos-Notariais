@@ -1,0 +1,8 @@
+/*
+ * Base estrutural da aplicação.
+ *
+ * O stylesheet histórico permanece encapsulado em uma camada de baixa
+ * prioridade. Assim ele fornece somente os contratos estruturais ainda usados
+ * pelo JavaScript, sem sobrescrever a interface atual por especificidade.
+ */
+@import url("./protocolos-product.css") layer(protocolos-foundation);

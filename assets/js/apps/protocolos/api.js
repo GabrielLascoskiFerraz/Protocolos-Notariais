@@ -36,12 +36,15 @@ async function parseApiResponse(response) {
     return data;
 }
 
-export async function apiGet(resource, params = {}) {
+export async function apiGet(resource, params = {}, options = {}) {
     const response = await fetch(protocolsServerUrl({
         ...params,
         resource,
         client_id: PROTOCOLS_CLIENT_ID
-    }), { cache: "no-store" });
+    }), {
+        cache: "no-store",
+        signal: options.signal
+    });
     return parseApiResponse(response);
 }
 

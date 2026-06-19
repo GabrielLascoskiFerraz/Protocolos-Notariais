@@ -1,6 +1,6 @@
 # Protocolos Notariais
 
-Sistema interno para gestão de protocolos notariais em Kanban, com edição em modal, autosave, sincronização colaborativa, geração de PDF da ficha, agenda, leitor de certidões, QR Code e vínculo de pasta de documentos.
+Sistema interno para gestão de protocolos notariais em Kanban, com edição em modal, autosave, sincronização colaborativa, geração de PDF da ficha, agenda, árvores genealógicas, leitor de certidões, QR Code e vínculo de pasta de documentos.
 
 ## Requisitos
 
@@ -44,6 +44,7 @@ Observação: para testes locais de documentos fora da raiz oficial, use `PROTOC
 .
 ├── index.php                         # Entrada pública: Dashboard Kanban
 ├── calendario.php                    # Entrada pública: Consultar Agenda
+├── arvores.php                       # Entrada pública: Árvores Genealógicas
 ├── certidoes.php                     # Entrada pública: Leitor de Certidões
 ├── gerador-qrcode.php                # Entrada pública: Gerador de QR Code
 ├── .htaccess                         # Proteções HTTP básicas do projeto
@@ -52,6 +53,7 @@ Observação: para testes locais de documentos fora da raiz oficial, use `PROTOC
 │   ├── pages/                        # Telas renderizadas pelos wrappers públicos
 │   │   ├── dashboard.php
 │   │   ├── agenda.php
+│   │   ├── arvores.php
 │   │   ├── certidoes.php
 │   │   └── qrcode.php
 │   ├── api/                          # Implementações internas das APIs
@@ -66,7 +68,8 @@ Observação: para testes locais de documentos fora da raiz oficial, use `PROTOC
 │   ├── services/
 │   │   └── protocolos-metadata.php   # Metadados iniciais da dashboard
 │   └── views/
-│       └── app-layout.php            # Layout compartilhado/header/helper de ícones
+│       ├── app-layout.php            # Layout compartilhado/sidebar/helper de ícones
+│       └── genealogy-app.php         # Estrutura da ferramenta de genealogia
 ├── api/                              # Wrappers públicos compatíveis das APIs
 │   ├── protocolos_app.php
 │   ├── protocolos.php
@@ -78,7 +81,9 @@ Observação: para testes locais de documentos fora da raiz oficial, use `PROTOC
 │   ├── ato-cores.php
 │   └── tags.php
 ├── assets/                           # Arquivos públicos estáticos
-│   ├── css/protocolos-product.css
+│   ├── css/protocolos-foundation.css # Base histórica isolada em cascade layer
+│   ├── css/protocolos-redesign.css   # Interface visual autoritativa
+│   ├── css/arvores.css               # Estilos isolados da genealogia
 │   ├── img/
 │   ├── js/apps/                      # Código de UI por tela
 │   ├── js/features/                  # Regras client-side puras
@@ -113,6 +118,8 @@ Observação: os arquivos públicos na raiz são wrappers pequenos. A implementa
 - Vínculo de pasta de documentos e listagem somente leitura dos arquivos.
 - Detecção visual de arquivos problemáticos na pasta vinculada.
 - Geração de PDF da ficha.
+- Criação, edição, importação e exportação de árvores genealógicas.
+- Dados das árvores mantidos localmente no navegador.
 - Leitor de certidões via PDF.js.
 - Gerador de QR Code com marca central.
 - Agenda via Google Calendar ICS com cache de 30 minutos.
@@ -253,7 +260,9 @@ Requer servidor e banco ativos.
 ## Observações de Manutenção
 
 - O frontend ativo está em `assets/js/apps/`, `assets/js/features/` e `assets/js/shared/`.
-- O CSS ativo é `assets/css/protocolos-product.css`.
+- A interface visual ativa está em `assets/css/protocolos-redesign.css`.
+- `assets/css/protocolos-foundation.css` encapsula `assets/css/protocolos-product.css` em uma cascade layer de baixa prioridade para preservar apenas contratos estruturais ainda necessários.
+- A ferramenta de genealogia usa CSS isolado em `assets/css/arvores.css` e mantém compatibilidade com a chave local `raizes_genealogia_v1`.
 - A API pública ativa é `api/protocolos_app.php`; a implementação fica em `app/api/protocolos_app.php`.
 - Mantenha código interno PHP em `app/` e deixe `api/` apenas como camada pública/compatibilidade.
 - Novas alterações de banco devem ser feitas por arquivo SQL versionado e refletidas em `database/schema.sql`.
