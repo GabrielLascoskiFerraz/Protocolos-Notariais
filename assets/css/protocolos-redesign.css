@@ -562,20 +562,32 @@ body.protocolos-product-ui::before,
 .protocol-column-add {
     width: 32px;
     height: 32px;
-    border: 1px solid color-mix(in srgb, var(--accent-deep) 22%, var(--line));
+    border: 1px solid var(--accent-deep);
     border-radius: 9px;
-    color: var(--accent-deep);
+    color: #fff;
     font-size: 1.25rem;
     font-weight: 450;
-    background: var(--paper);
-    box-shadow: none;
+    background: var(--accent-deep);
+    box-shadow: 0 8px 18px rgba(21, 87, 192, 0.2);
+    transition:
+        transform 150ms ease,
+        border-color 150ms ease,
+        background-color 150ms ease,
+        box-shadow 150ms ease;
 }
 
 .protocol-column-add:hover,
 .protocol-column-add:focus-visible {
     color: #fff;
-    background: var(--accent-deep);
-    box-shadow: 0 8px 18px rgba(21, 87, 192, 0.2);
+    border-color: color-mix(in srgb, var(--accent-deep) 82%, #061d46);
+    background: color-mix(in srgb, var(--accent-deep) 86%, #061d46);
+    box-shadow: 0 10px 22px rgba(21, 87, 192, 0.3);
+    transform: translateY(-1px) scale(1.035);
+}
+
+.protocol-column-add:active {
+    box-shadow: 0 4px 10px rgba(21, 87, 192, 0.22);
+    transform: translateY(0) scale(0.96);
 }
 
 .protocol-column-cards {
@@ -1728,16 +1740,18 @@ body.protocolos-product-ui::before,
 }
 
 :root[data-theme="dark"] .protocol-column-add {
-    color: var(--accent-deep);
-    border-color: var(--line);
-    background: var(--paper-soft);
-    box-shadow: none;
+    color: #07101f;
+    border-color: var(--accent-deep);
+    background: var(--accent-deep);
+    box-shadow: 0 8px 18px rgba(110, 168, 255, 0.18);
 }
 
 :root[data-theme="dark"] .protocol-column-add:hover,
 :root[data-theme="dark"] .protocol-column-add:focus-visible {
     color: #07101f;
-    background: var(--accent-deep);
+    border-color: color-mix(in srgb, var(--accent-deep) 86%, #fff);
+    background: color-mix(in srgb, var(--accent-deep) 86%, #fff);
+    box-shadow: 0 10px 24px rgba(110, 168, 255, 0.28);
 }
 
 :root[data-theme="dark"] .protocol-card {
