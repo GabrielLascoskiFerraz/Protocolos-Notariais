@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Envie PDFs com texto selecionável para montar a saída pronta para copiar.">
+    <title>Leitor de Certidões</title>
+    <base href="./">
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <link rel="shortcut icon" type="image/svg+xml" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <link rel="apple-touch-icon" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <script>
+        (function () {
+            try {
+                var prefs = JSON.parse(localStorage.getItem('protocolos.userPreferences.v1') || '{}');
+                var root = document.documentElement;
+                var themePreference = ['system', 'light', 'dark'].indexOf(prefs.theme) >= 0 ? prefs.theme : 'system';
+                var resolvedTheme = themePreference === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : themePreference;
+                root.dataset.theme = resolvedTheme;
+                root.dataset.themePreference = themePreference;
+                root.dataset.density = ['compact', 'comfortable', 'spacious'].indexOf(prefs.density) >= 0 ? prefs.density : 'comfortable';
+                root.style.colorScheme = resolvedTheme;
+                var scale = Number(prefs.fontScale || 1);
+                root.style.setProperty('--user-font-scale', String(Math.max(0.9, Math.min(1.18, scale))));
+            } catch (error) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="assets/css/protocolos-foundation.css?v=1781838626-b5762ba0">
+    <link rel="stylesheet" href="assets/css/protocolos-redesign.css?v=1781838626-f77f2624">
+    <script>
+        window.BASE_URL = ".\/";
+        window.PROTOCOLOS_BASE_URL = window.BASE_URL;
+    </script>
+    <script type="module" src="assets/js/shared/user-preferences.js?v=1778865689-b9b285a8"></script>
+    <script type="module" src="assets/js/apps/certidoes/index.js?v=1778768216-e67ce2a1"></script>
+</head>
+<body class="protocolos-product-ui protocolos-body">
+    <div class="protocolos-studio">
+        <aside class="studio-topbar">
+            <div class="studio-identity">
+                    <a class="brand-block" href="index.html" aria-label="Ir para a página inicial dos Protocolos">
+        <span class="brand-mark" aria-hidden="true">
+            <svg class="brand-column-icon" viewBox="0 0 28 28" focusable="false" role="img">
+                <path d="M7.2 5.6h13.6l1.8 2.3v1.2H5.4V7.9l1.8-2.3Z" fill="currentColor" opacity=".95"></path>
+                <path d="M6.3 19.7h15.4l1.1 1.7v1H5.2v-1l1.1-1.7Z" fill="currentColor" opacity=".95"></path>
+                <path d="M8 10.2h12v1.7H8v-1.7Z" fill="currentColor" opacity=".42"></path>
+                <path d="M8.6 17.8h10.8v1.4H8.6v-1.4Z" fill="currentColor" opacity=".42"></path>
+                <path d="M9.6 11.5h1.8v6.9H9.6v-6.9Zm3.1 0h2.6v6.9h-2.6v-6.9Zm3.9 0h1.8v6.9h-1.8v-6.9Z" fill="currentColor"></path>
+            </svg>
+        </span>
+        <span class="brand-copy">
+            <span class="eyebrow">Cartório</span>
+            <strong>Protocolos</strong>
+        </span>
+    </a>
+                </div>
+
+            <nav class="studio-switcher" aria-label="Navegação principal">
+                <a class="studio-switcher-link" href="index.html" title="Protocolos" data-nav-label="Protocolos">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M7.5 8.5h13"></path><path d="M7.5 13.5h13"></path><path d="M7.5 18.5h13"></path><path d="M5 6.5h18a1.8 1.8 0 0 1 1.8 1.8v11.4A1.8 1.8 0 0 1 23 21.5H5a1.8 1.8 0 0 1-1.8-1.8V8.3A1.8 1.8 0 0 1 5 6.5Z"></path><path d="M10.5 6.5v15"></path><path d="M17.5 6.5v15"></path></svg></span>                    <span>Protocolos</span>
+                </a>
+                <a class="studio-switcher-link" href="agenda.html" title="Consultar Agenda" data-nav-label="Agenda">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><rect x="6.5" y="7.5" width="15" height="13" rx="2"></rect><path d="M10 5.5v4"></path><path d="M18 5.5v4"></path><path d="M6.5 11h15"></path><path d="M10 14h2.2M15 14h2.2M10 17h2.2M15 17h2.2"></path></svg></span>                    <span>Agenda</span>
+                </a>
+                <a class="studio-switcher-link" href="arvores.html" title="Árvores Genealógicas" data-nav-label="Árvores">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M14 23V10"></path><path d="M14 15c-4-.6-6.8-3.1-7.6-6.6 4.4-.4 7.1 2 7.6 6.6Z"></path><path d="M14 18.5c4.6-.5 7.5-3.1 8.3-7-4.8-.4-7.8 2.2-8.3 7Z"></path><path d="M14 10.5c2.8-.5 4.5-2.5 4.6-5.4-3.1.1-4.9 2.2-4.6 5.4Z"></path><path d="M10 23h8"></path></svg></span>                    <span>Árvores</span>
+                </a>
+                <a class="studio-switcher-link is-active" href="certidoes.html" title="Leitor de Certidões" data-nav-label="Certidões">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M8.5 6.5h11a2 2 0 0 1 2 2v13l-3-1.5-3 1.5-3-1.5-3 1.5-3-1.5v-13a2 2 0 0 1 2-2Z"></path><path d="M10.5 10.5h7"></path><path d="M10.5 13.5h7"></path><path d="M10.5 16.5h4"></path></svg></span>                    <span>Certidões</span>
+                </a>
+                <a class="studio-switcher-link" href="qrcode.html" title="Gerador de QR Code" data-nav-label="QR Code">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M7.5 7.5h5v5h-5z"></path><path d="M15.5 7.5h5v5h-5z"></path><path d="M7.5 15.5h5v5h-5z"></path><path d="M16 16h1.8v1.8H16z"></path><path d="M19.3 16h1.2v4.5h-4.5v-1.2"></path></svg></span>                    <span>QR Code</span>
+                </a>
+                <a class="studio-switcher-link" href="configuracoes.html" title="Configurações" data-nav-label="Configurações">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M14 9.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z"></path><path d="M14 5.4v2.1M14 20.5v2.1M5.4 14h2.1M20.5 14h2.1M7.9 7.9l1.5 1.5M18.6 18.6l1.5 1.5M20.1 7.9l-1.5 1.5M9.4 18.6l-1.5 1.5"></path></svg></span>                    <span>Configurações</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="studio-workspace">
+            <header class="page-header">
+                <div class="page-header-copy">
+                    <span class="eyebrow">Ferramentas</span>
+                    <h1>Certidões</h1>
+                    <p>Envie PDFs com texto selecionável para montar a saída pronta para copiar.</p>
+                </div>
+            </header>
+            <main class="page-shell page-protocol-tool">
+    <section class="protocol-tool-shell protocol-cert-shell">
+        <section class="surface protocol-tool-panel">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow"><span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M7 4.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z"></path><path d="M14 4.5V9h4"></path></svg></span>Arquivos</span>
+                    <h2>Certidões em PDF</h2>
+                </div>
+                <button class="button button-secondary" id="cert-clear" type="button">
+                    <span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M5 7h14"></path><path d="M9 7V5h6v2"></path><path d="M8 10v8"></path><path d="M12 10v8"></path><path d="M16 10v8"></path><path d="M7 7l.7 13h8.6L17 7"></path></svg></span><span>Limpar</span>
+                </button>
+            </div>
+
+            <div id="cert-warning" class="protocol-warning hidden" aria-live="polite"></div>
+            <div id="cert-processing" class="cert-processing-status hidden" aria-live="polite">
+                <span class="cert-processing-spinner" aria-hidden="true"></span>
+                <div>
+                    <strong>Processando certidões</strong>
+                    <span id="cert-processing-text">Preparando leitura dos PDFs.</span>
+                </div>
+            </div>
+
+            <div id="cert-dropzone" class="protocol-dropzone" tabindex="0" role="button" aria-label="Arraste PDFs aqui ou clique para selecionar arquivos">
+                <div class="protocol-dropzone-icon" aria-hidden="true"><span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M7 4.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z"></path><path d="M14 4.5V9h4"></path><path d="M8.5 14.5h1.2a1.2 1.2 0 1 0 0-2.4H8.5v4.8"></path><path d="M12.3 12.1v4.8h1.1a2.4 2.4 0 0 0 0-4.8h-1.1Z"></path></svg></span></div>
+                <strong>Arraste os PDFs aqui</strong>
+                <p>ou selecione vários arquivos de uma vez.</p>
+                <label class="button button-primary" for="cert-file-input">
+                    <span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M12 16V4"></path><path d="m7.5 8.5 4.5-4.5 4.5 4.5"></path><path d="M5 19.5h14"></path></svg></span><span>Selecionar arquivos</span>
+                </label>
+                <input id="cert-file-input" type="file" accept="application/pdf" multiple hidden>
+            </div>
+
+            <p class="protocol-tool-note">Funciona melhor com PDFs que tenham texto selecionável.</p>
+        </section>
+
+        <section class="surface protocol-tool-panel">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow"><span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M6.5 4.5h11A1.5 1.5 0 0 1 19 6v12a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 18V6a1.5 1.5 0 0 1 1.5-1.5Z"></path><path d="M8.5 9h7"></path><path d="M8.5 12h7"></path><path d="M8.5 15h4"></path></svg></span>Texto final</span>
+                    <h2>Saída para copiar</h2>
+                </div>
+                <button class="button button-primary" id="cert-copy" type="button">
+                    <span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><rect x="8" y="8" width="10" height="12" rx="2"></rect><path d="M6 16H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path></svg></span><span data-button-label>Copiar</span>
+                </button>
+            </div>
+
+            <div class="protocol-cert-output-wrap">
+                <div id="cert-output-highlight" class="protocol-cert-output-highlight" aria-hidden="true"></div>
+                <textarea id="cert-output" class="protocol-cert-output" placeholder="O texto gerado aparecerá aqui."></textarea>
+            </div>
+        </section>
+
+        <section class="surface protocol-tool-panel protocol-cert-results">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow"><span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M7 4.5h7l4 4V19a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19V6A1.5 1.5 0 0 1 7.5 4.5Z"></path><path d="M14 4.5V9h4"></path></svg></span>Leitura</span>
+                    <h2>Arquivos processados</h2>
+                </div>
+            </div>
+            <div id="cert-results" class="protocol-cert-results-list"></div>
+        </section>
+    </section>
+
+    <dialog id="cert-alert-modal" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
+        <div id="cert-alert-overlay" class="protocol-modal-overlay"></div>
+        <div class="protocol-modal-panel" role="dialog" aria-modal="true" aria-labelledby="cert-alert-title">
+            <div class="surface-head surface-head-compact">
+                <div>
+                    <span class="eyebrow"><span class="tool-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" role="img"><path d="M12 4.5 20 19H4L12 4.5Z"></path><path d="M12 9.5v4.5"></path><path d="M12 17h.01"></path></svg></span>Atenção</span>
+                    <h2 id="cert-alert-title">Certidões com alerta</h2>
+                </div>
+                <button id="cert-alert-close" class="chat-icon-button" type="button" aria-label="Fechar alerta">×</button>
+            </div>
+            <p class="protocol-tool-note">Foram identificadas certidões positivas, vencidas ou não emitidas neste lote.</p>
+            <div id="cert-alert-list" class="protocol-cert-alert-list"></div>
+        </div>
+    </dialog>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

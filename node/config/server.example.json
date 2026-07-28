@@ -1,0 +1,27 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "name": "Protocolos Notariais",
+    "friendlyHost": "protocolos",
+    "mdnsEnabled": true
+  },
+  "database": {
+    "file": "data/protocolos.sqlite"
+  },
+  "backup": {
+    "enabled": true,
+    "frequency": "weekly",
+    "weekDay": 5,
+    "time": "06:00",
+    "directory": "backups",
+    "retentionDays": 90
+  },
+  "presence": {
+    "idleSeconds": 90
+  },
+  "calendar": {
+    "icsUrl": "",
+    "cacheSeconds": 1800
+  }
+}

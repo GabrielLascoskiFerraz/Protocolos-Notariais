@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Agenda sincronizada por calendário externo.">
+    <title>Consultar Agenda</title>
+    <base href="./">
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <link rel="shortcut icon" type="image/svg+xml" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <link rel="apple-touch-icon" href="assets/img/favicon.svg?v=1778699213-43f06046">
+    <script>
+        (function () {
+            try {
+                var prefs = JSON.parse(localStorage.getItem('protocolos.userPreferences.v1') || '{}');
+                var root = document.documentElement;
+                var themePreference = ['system', 'light', 'dark'].indexOf(prefs.theme) >= 0 ? prefs.theme : 'system';
+                var resolvedTheme = themePreference === 'system'
+                    ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : themePreference;
+                root.dataset.theme = resolvedTheme;
+                root.dataset.themePreference = themePreference;
+                root.dataset.density = ['compact', 'comfortable', 'spacious'].indexOf(prefs.density) >= 0 ? prefs.density : 'comfortable';
+                root.style.colorScheme = resolvedTheme;
+                var scale = Number(prefs.fontScale || 1);
+                root.style.setProperty('--user-font-scale', String(Math.max(0.9, Math.min(1.18, scale))));
+            } catch (error) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="assets/css/protocolos-foundation.css?v=1781838626-b5762ba0">
+    <link rel="stylesheet" href="assets/css/protocolos-redesign.css?v=1781838626-f77f2624">
+    <script>
+        window.BASE_URL = ".\/";
+        window.PROTOCOLOS_BASE_URL = window.BASE_URL;
+    </script>
+    <script type="module" src="assets/js/shared/user-preferences.js?v=1778865689-b9b285a8"></script>
+    <script type="module" src="assets/js/apps/agenda/index.js?v=1778712596-621ac4f3"></script>
+</head>
+<body class="protocolos-product-ui protocolos-body">
+    <div class="protocolos-studio">
+        <aside class="studio-topbar">
+            <div class="studio-identity">
+                    <a class="brand-block" href="index.html" aria-label="Ir para a página inicial dos Protocolos">
+        <span class="brand-mark" aria-hidden="true">
+            <svg class="brand-column-icon" viewBox="0 0 28 28" focusable="false" role="img">
+                <path d="M7.2 5.6h13.6l1.8 2.3v1.2H5.4V7.9l1.8-2.3Z" fill="currentColor" opacity=".95"></path>
+                <path d="M6.3 19.7h15.4l1.1 1.7v1H5.2v-1l1.1-1.7Z" fill="currentColor" opacity=".95"></path>
+                <path d="M8 10.2h12v1.7H8v-1.7Z" fill="currentColor" opacity=".42"></path>
+                <path d="M8.6 17.8h10.8v1.4H8.6v-1.4Z" fill="currentColor" opacity=".42"></path>
+                <path d="M9.6 11.5h1.8v6.9H9.6v-6.9Zm3.1 0h2.6v6.9h-2.6v-6.9Zm3.9 0h1.8v6.9h-1.8v-6.9Z" fill="currentColor"></path>
+            </svg>
+        </span>
+        <span class="brand-copy">
+            <span class="eyebrow">Cartório</span>
+            <strong>Protocolos</strong>
+        </span>
+    </a>
+                </div>
+
+            <nav class="studio-switcher" aria-label="Navegação principal">
+                <a class="studio-switcher-link" href="index.html" title="Protocolos" data-nav-label="Protocolos">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M7.5 8.5h13"></path><path d="M7.5 13.5h13"></path><path d="M7.5 18.5h13"></path><path d="M5 6.5h18a1.8 1.8 0 0 1 1.8 1.8v11.4A1.8 1.8 0 0 1 23 21.5H5a1.8 1.8 0 0 1-1.8-1.8V8.3A1.8 1.8 0 0 1 5 6.5Z"></path><path d="M10.5 6.5v15"></path><path d="M17.5 6.5v15"></path></svg></span>                    <span>Protocolos</span>
+                </a>
+                <a class="studio-switcher-link is-active" href="agenda.html" title="Consultar Agenda" data-nav-label="Agenda">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><rect x="6.5" y="7.5" width="15" height="13" rx="2"></rect><path d="M10 5.5v4"></path><path d="M18 5.5v4"></path><path d="M6.5 11h15"></path><path d="M10 14h2.2M15 14h2.2M10 17h2.2M15 17h2.2"></path></svg></span>                    <span>Agenda</span>
+                </a>
+                <a class="studio-switcher-link" href="arvores.html" title="Árvores Genealógicas" data-nav-label="Árvores">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M14 23V10"></path><path d="M14 15c-4-.6-6.8-3.1-7.6-6.6 4.4-.4 7.1 2 7.6 6.6Z"></path><path d="M14 18.5c4.6-.5 7.5-3.1 8.3-7-4.8-.4-7.8 2.2-8.3 7Z"></path><path d="M14 10.5c2.8-.5 4.5-2.5 4.6-5.4-3.1.1-4.9 2.2-4.6 5.4Z"></path><path d="M10 23h8"></path></svg></span>                    <span>Árvores</span>
+                </a>
+                <a class="studio-switcher-link" href="certidoes.html" title="Leitor de Certidões" data-nav-label="Certidões">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M8.5 6.5h11a2 2 0 0 1 2 2v13l-3-1.5-3 1.5-3-1.5-3 1.5-3-1.5v-13a2 2 0 0 1 2-2Z"></path><path d="M10.5 10.5h7"></path><path d="M10.5 13.5h7"></path><path d="M10.5 16.5h4"></path></svg></span>                    <span>Certidões</span>
+                </a>
+                <a class="studio-switcher-link" href="qrcode.html" title="Gerador de QR Code" data-nav-label="QR Code">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M7.5 7.5h5v5h-5z"></path><path d="M15.5 7.5h5v5h-5z"></path><path d="M7.5 15.5h5v5h-5z"></path><path d="M16 16h1.8v1.8H16z"></path><path d="M19.3 16h1.2v4.5h-4.5v-1.2"></path></svg></span>                    <span>QR Code</span>
+                </a>
+                <a class="studio-switcher-link" href="configuracoes.html" title="Configurações" data-nav-label="Configurações">
+                    <span class="studio-nav-icon" aria-hidden="true"><svg viewBox="0 0 28 28" focusable="false" role="img"><path d="M14 9.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z"></path><path d="M14 5.4v2.1M14 20.5v2.1M5.4 14h2.1M20.5 14h2.1M7.9 7.9l1.5 1.5M18.6 18.6l1.5 1.5M20.1 7.9l-1.5 1.5M9.4 18.6l-1.5 1.5"></path></svg></span>                    <span>Configurações</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="studio-workspace">
+            <main class="page-shell page-agenda">
+    <section class="agenda-workspace" aria-label="Agenda do cartório">
+        <header class="agenda-command">
+            <div>
+                <span class="eyebrow">Calendário</span>
+                <h2 id="agenda-month-label">Carregando agenda</h2>
+                <p>Visualize os compromissos do cartório.</p>
+            </div>
+            <div class="agenda-actions">
+                <span class="status-pill status-pill-soft" id="agenda-feedback" aria-live="polite">Carregando compromissos...</span>
+                <button class="button button-secondary agenda-refresh-button" type="button" id="agenda-refresh" aria-label="Atualizar calendário">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                </button>
+                <button class="button button-secondary" type="button" id="agenda-prev" aria-label="Mês anterior">‹</button>
+                <button class="button button-secondary" type="button" id="agenda-today">Hoje</button>
+                <button class="button button-secondary" type="button" id="agenda-next" aria-label="Próximo mês">›</button>
+            </div>
+        </header>
+
+        <div class="agenda-layout">
+            <section class="agenda-month-panel surface" aria-label="Calendário mensal">
+                <div class="agenda-weekdays" aria-hidden="true">
+                    <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+                </div>
+                <div class="agenda-grid" id="agenda-grid" aria-label="Dias do mês"></div>
+            </section>
+
+            <aside class="agenda-side-panel surface" aria-label="Próximos compromissos">
+                <div class="surface-head surface-head-compact">
+                    <div>
+                        <span class="eyebrow">Próximos</span>
+                        <h2>Compromissos</h2>
+                    </div>
+                </div>
+                <div class="agenda-upcoming" id="agenda-upcoming"></div>
+            </aside>
+        </div>
+    </section>
+
+    <dialog class="agenda-event-modal" id="agenda-event-modal" aria-labelledby="agenda-event-title">
+        <div class="agenda-event-shell">
+            <header>
+                <div>
+                    <span class="eyebrow" id="agenda-event-date">Compromisso</span>
+                    <h3 id="agenda-event-title">Compromisso</h3>
+                </div>
+                <button class="agenda-event-close" type="button" id="agenda-event-close" aria-label="Fechar detalhes">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                </button>
+            </header>
+            <div class="agenda-event-meta">
+                <div><span>Horário</span><strong id="agenda-event-time">-</strong></div>
+                <div><span>Local</span><strong id="agenda-event-location">-</strong></div>
+            </div>
+            <p id="agenda-event-description" class="agenda-event-description">Sem descrição.</p>
+        </div>
+    </dialog>
+
+    <dialog class="agenda-event-modal" id="agenda-day-modal" aria-labelledby="agenda-day-title">
+        <div class="agenda-event-shell agenda-day-shell">
+            <header>
+                <div>
+                    <span class="eyebrow" id="agenda-day-label">Dia</span>
+                    <h3 id="agenda-day-title">Compromissos do dia</h3>
+                </div>
+                <button class="agenda-event-close" type="button" id="agenda-day-close" aria-label="Fechar lista">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                </button>
+            </header>
+            <div class="agenda-day-list" id="agenda-day-events"></div>
+        </div>
+    </dialog>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
