@@ -1,0 +1,7 @@
+node_modules/
+data/*.sqlite*
+backups/*.sqlite*
+logs/*.log
+config/server.json
+dist/
+.DS_Store

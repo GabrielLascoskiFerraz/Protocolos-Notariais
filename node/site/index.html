@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light" data-density="comfortable">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Protocolos Notariais</title>
+  <link rel="icon" href="assets/img/favicon.svg">
+  <link rel="stylesheet" href="assets/css/protocolos-foundation.css">
+  <link rel="stylesheet" href="assets/css/protocolos-redesign.css">
+  <link rel="stylesheet" href="assets/css/node-runtime.css">
+  <script>
+    try {
+      const preferences = JSON.parse(localStorage.getItem('protocolos.userPreferences.v1') || '{}');
+      const systemDark = matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.dataset.theme = preferences.theme === 'dark' || (preferences.theme !== 'light' && systemDark) ? 'dark' : 'light';
+      document.documentElement.dataset.density = preferences.density || 'comfortable';
+      document.documentElement.style.setProperty('--user-font-scale', preferences.fontScale || 1);
+    } catch {}
+  </script>
+</head>
+<body class="protocolos-product-ui protocolos-body">
+  <div class="protocolos-studio">
+    <aside class="studio-topbar">
+      <div class="studio-identity">
+        <a class="brand-block" href="/" aria-label="Protocolos">
+          <span class="brand-mark" aria-hidden="true"><svg class="brand-column-icon" viewBox="0 0 28 28"><path d="M7.2 5.6h13.6l1.8 2.3v1.2H5.4V7.9l1.8-2.3ZM6.3 19.7h15.4l1.1 1.7v1H5.2v-1l1.1-1.7ZM8 10.2h12v1.7H8zm.6 7.6h10.8v1.4H8.6zm1-6.3h1.8v6.9H9.6zm3.1 0h2.6v6.9h-2.6zm3.9 0h1.8v6.9h-1.8z" fill="currentColor"/></svg></span>
+          <span class="brand-copy"><span class="eyebrow">Cartório</span><strong>Protocolos</strong></span>
+        </a>
+      </div>
+      <nav class="studio-switcher" aria-label="Navegação principal">
+        <a class="studio-switcher-link is-active" href="/"><span class="studio-nav-icon">▤</span><span>Protocolos</span></a>
+        <a class="studio-switcher-link" href="/agenda.html"><span class="studio-nav-icon">◫</span><span>Agenda</span></a>
+        <a class="studio-switcher-link" href="/arvores.html"><span class="studio-nav-icon">♧</span><span>Árvores</span></a>
+        <a class="studio-switcher-link" href="/certidoes.html"><span class="studio-nav-icon">▧</span><span>Certidões</span></a>
+        <a class="studio-switcher-link" href="/qrcode.html"><span class="studio-nav-icon">⌗</span><span>QR Code</span></a>
+        <a class="studio-switcher-link" href="/configuracoes.html"><span class="studio-nav-icon">⚙</span><span>Configurações</span></a>
+      </nav>
+    </aside>
+    <div class="studio-workspace">
+      <main class="page-shell page-protocols">
+        <section class="protocols-native-shell">
+          <section class="surface protocols-control-panel">
+            <div class="protocols-filter-line">
+              <div class="protocols-page-title"><h1>Protocolos</h1></div>
+              <label class="field protocols-search-field"><span class="protocols-field-label" aria-hidden="true"><svg class="protocols-search-icon" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.5"></circle><path d="m15 15 4.5 4.5"></path></svg></span><input id="search" type="search" aria-label="Buscar protocolos" placeholder="Ficha, apresentante, partes, digitador ou ato"></label>
+              <label class="field"><span class="protocols-field-label">Ato</span><select id="filter-ato"><option value="">Todos</option></select></label>
+              <label class="field"><span class="protocols-field-label">Digitador</span><select id="filter-digitador"><option value="">Todos</option></select></label>
+              <label class="field"><span class="protocols-field-label">Etiqueta</span><select id="filter-tag"><option value="">Todas</option></select></label>
+              <label class="protocols-toggle"><input id="filter-urgent" type="checkbox"><span>Urgentes</span></label>
+              <label class="protocols-toggle"><input id="show-archived" type="checkbox"><span>Mostrar arquivados</span></label>
+            </div>
+            <div class="protocols-active-filters" id="active-filters"></div>
+          </section>
+          <section class="protocols-board is-loading" id="board" aria-live="polite" aria-busy="true"></section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog class="protocols-dialog" id="protocol-dialog">
+    <form method="dialog" class="protocols-dialog-shell">
+      <header class="protocols-dialog-head">
+        <div><span class="eyebrow">Protocolo</span><h2 id="modal-title">Ficha</h2><p id="modal-presence"></p></div>
+        <div class="protocols-dialog-actions">
+          <button class="button button-secondary" type="button" id="duplicate"><span data-node-icon="copy" aria-hidden="true"></span><span>Duplicar</span></button>
+          <button class="button button-secondary" type="button" id="print"><span data-node-icon="print" aria-hidden="true"></span><span>Imprimir Ficha</span></button>
+          <button class="chat-icon-button" type="button" id="close-dialog" aria-label="Fechar">×</button>
+        </div>
+      </header>
+      <div class="protocols-modal-notice is-hidden" id="modal-notice"></div>
+      <section class="protocols-modal-overview">
+        <article class="protocols-overview-card is-ficha"><div class="protocols-overview-card-top"><span class="protocols-overview-icon" data-node-icon="file" aria-hidden="true"></span><span class="eyebrow">Ficha</span></div><strong id="overview-ficha">-</strong></article>
+        <article class="protocols-overview-card is-ato"><div class="protocols-overview-card-top"><span class="protocols-overview-icon" data-node-icon="stamp" aria-hidden="true"></span><span class="eyebrow">Ato</span></div><strong id="overview-ato">-</strong></article>
+        <article class="protocols-overview-card is-digitador"><div class="protocols-overview-card-top"><span class="protocols-overview-icon" data-node-icon="keyboard" aria-hidden="true"></span><span class="eyebrow">Digitador</span></div><strong id="overview-digitador">-</strong></article>
+        <article class="protocols-overview-card is-data"><div class="protocols-overview-card-top"><span class="protocols-overview-icon" data-node-icon="calendar" aria-hidden="true"></span><span class="eyebrow">Data</span></div><strong id="overview-date">-</strong></article>
+      </section>
+      <div class="protocols-dialog-body">
+        <section class="surface surface-nested protocols-modal-section protocols-data-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="file" aria-hidden="true"></span><div><span class="eyebrow">Dados</span><h2>Identificação</h2></div></div><label class="protocols-urgent-toggle"><input type="checkbox" data-field="urgente"><span>Urgente</span></label></div>
+          <div class="compact-form-grid compact-form-grid-3">
+            <label class="field"><span>Ficha</span><input type="number" data-field="ficha"></label>
+            <label class="field field-span-2"><span>Ato</span><input data-field="ato" list="ato-options"></label>
+            <label class="field"><span>Digitador</span><input data-field="digitador" list="digitador-options"></label>
+            <label class="field"><span>Data</span><input type="date" data-field="data_apresentacao"></label>
+            <label class="field"><span>Contato</span><input data-field="contato"></label>
+            <label class="field field-span-2"><span>Apresentante</span><input data-field="apresentante"></label>
+            <label class="field"><span>Etiqueta</span><input data-field="tag_custom" list="tag-options"></label>
+          </div>
+        </section>
+        <section class="surface surface-nested protocols-modal-section protocols-timeline-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="note" aria-hidden="true"></span><div><span class="eyebrow">Andamentos</span><h2>Histórico</h2></div></div></div>
+          <div class="protocols-add-note"><textarea id="new-note" rows="2" placeholder="Registrar novo andamento"></textarea><button class="button button-primary protocols-add-note-action" type="button" id="add-note" aria-label="Adicionar andamento" title="Adicionar andamento"><span data-node-icon="plus" aria-hidden="true"></span></button></div>
+          <div class="protocols-timeline-frame"><div class="protocols-timeline" id="notes"></div></div>
+        </section>
+        <section class="surface surface-nested protocols-modal-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="user" aria-hidden="true"></span><div><span class="eyebrow">Partes</span><h2>Outorgantes e outorgados</h2></div></div></div>
+          <div class="compact-form-grid compact-form-grid-2">
+            <label class="field"><span>Outorgantes</span><textarea data-field="outorgantes" rows="5"></textarea></label>
+            <label class="field"><span>Outorgados</span><textarea data-field="outorgados" rows="5"></textarea></label>
+          </div>
+        </section>
+        <section class="surface surface-nested protocols-modal-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="map" aria-hidden="true"></span><div><span class="eyebrow">Imóveis</span><h2>Matrículas</h2></div></div><button class="button button-secondary" type="button" id="add-property">Adicionar</button></div>
+          <div class="protocols-sublist" id="properties"></div>
+        </section>
+        <section class="surface surface-nested protocols-modal-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="money" aria-hidden="true"></span><div><span class="eyebrow">Valores</span><h2>Custas e adicionais</h2></div></div><button class="button button-secondary" type="button" id="add-value">Adicionar</button></div>
+          <label class="field"><span>Valor do ato</span><input data-field="valor_ato" inputmode="decimal"></label>
+          <div class="protocols-sublist" id="values"></div>
+          <div class="protocols-total" id="values-total">Total adicional: R$ 0,00</div>
+        </section>
+        <section class="surface surface-nested protocols-modal-section protocols-notes-section protocols-observations-section">
+          <div class="surface-head surface-head-compact"><div class="protocol-section-heading"><span class="protocol-section-icon" data-node-icon="note" aria-hidden="true"></span><div><span class="eyebrow">Observações</span><h2>Anotações internas</h2></div></div></div>
+          <label class="field protocols-observations-field"><textarea data-field="observacoes" rows="9"></textarea></label>
+        </section>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="confirm-dialog" class="protocol-modal protocol-modal-dialog hidden" aria-hidden="true">
+    <div id="confirm-overlay" class="protocol-modal-overlay"></div>
+    <div class="protocol-modal-panel protocols-confirm-panel" role="document">
+      <div class="surface-head surface-head-compact">
+        <div><span class="eyebrow">Confirmação</span><h2 id="confirm-title">Confirmar ação?</h2></div>
+        <button id="confirm-close" class="chat-icon-button" type="button" aria-label="Fechar">×</button>
+      </div>
+      <p class="protocol-tool-note" id="confirm-message"></p>
+      <div class="protocols-confirm-summary" id="confirm-summary"></div>
+      <div class="surface-actions">
+        <button class="button button-secondary" id="confirm-cancel" type="button">Cancelar</button>
+        <button class="button button-primary danger" id="confirm-accept" type="button">Excluir</button>
+      </div>
+    </div>
+  </dialog>
+  <datalist id="ato-options"></datalist><datalist id="digitador-options"></datalist><datalist id="tag-options"></datalist>
+  <div class="protocols-toast-stack" id="toasts"></div>
+  <script type="module" src="assets/js/shared/user-preferences.js"></script>
+  <script type="module" src="assets/js/shared/calendar-alerts.js"></script>
+  <script type="module" src="assets/js/nav.js"></script>
+  <script type="module" src="assets/js/protocols/app.js"></script>
+</body>
+</html>
