@@ -289,12 +289,6 @@ body.protocolos-product-ui::before,
     box-shadow: 0 4px 14px rgba(16, 24, 40, 0.025);
 }
 
-.protocols-control-panel:has(.protocols-active-filters .protocol-filter-hint:only-child) {
-    grid-template-rows: auto 0;
-    gap: 0;
-    padding-bottom: 14px;
-}
-
 .protocols-filter-line {
     display: grid;
     grid-template-columns:
@@ -425,29 +419,41 @@ body.protocolos-product-ui::before,
 }
 
 .protocols-active-filters {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
     height: 28px;
     min-height: 28px;
     padding-left: 2px;
-}
-
-.protocols-active-filters:has(.protocol-filter-hint:only-child) {
-    height: 0;
-    min-height: 0;
     overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
 }
 
 .protocol-filter-hint {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+    height: 24px;
     padding-left: 2px;
     font-size: 0.72rem;
+    white-space: nowrap;
 }
 
 .protocol-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
     min-height: 24px;
     padding: 3px 8px;
     border: 1px solid color-mix(in srgb, var(--accent-deep) 18%, var(--line-soft));
     border-radius: 7px;
     color: var(--accent-deep);
     background: var(--accent-soft);
+    white-space: nowrap;
 }
 
 /* Board and columns */
@@ -2184,8 +2190,9 @@ body.protocolos-product-ui::before,
     }
 
     .protocols-active-filters {
-        height: auto;
-        min-height: 26px;
+        height: 28px;
+        min-height: 28px;
+        max-height: 28px;
     }
 
     .protocols-board,
@@ -2914,5 +2921,123 @@ body.protocolos-product-ui::before,
     .protocol-modal-panel,
     .agenda-event-shell {
         padding: 18px;
+    }
+}
+
+/* Certificate output: keep the editable text above a synchronized highlight layer. */
+.protocol-cert-output-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.protocol-cert-output-actions .button {
+    flex: 0 0 auto;
+}
+
+.protocol-cert-output-wrap {
+    position: relative;
+    display: grid;
+    min-height: clamp(18rem, 48vh, 34rem);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--paper);
+}
+
+.protocol-cert-output-wrap .protocol-cert-output,
+.protocol-cert-output-highlight {
+    grid-area: 1 / 1;
+    min-height: inherit;
+    margin: 0;
+    font: inherit;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
+
+.protocol-cert-output-wrap .protocol-cert-output {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    padding: 12px 14px;
+    border: 0;
+    outline: none;
+    resize: vertical;
+    color: var(--ink);
+    background: transparent;
+    box-shadow: none;
+    scrollbar-gutter: stable;
+}
+
+.protocol-cert-output-highlight {
+    z-index: 0;
+    padding: 0;
+    color: transparent;
+    border: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.protocol-cert-output-highlight-content {
+    box-sizing: border-box;
+    min-height: 100%;
+    padding: 12px 14px;
+    transform: translate(0, 0);
+    will-change: transform;
+}
+
+.cert-output-mark {
+    color: transparent;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(157, 79, 63, 0.1);
+}
+
+.cert-output-mark-expired {
+    background: rgba(157, 79, 63, 0.25);
+    box-shadow: 0 0 0 2px rgba(157, 79, 63, 0.15);
+}
+
+.cert-output-mark-positive {
+    background: rgba(169, 120, 63, 0.24);
+    box-shadow: 0 0 0 2px rgba(169, 120, 63, 0.14);
+}
+
+#cert-placeholder[aria-pressed="true"] {
+    color: var(--accent-deep);
+    border-color: color-mix(in srgb, var(--accent-deep) 34%, var(--line));
+    background: var(--accent-soft);
+}
+
+:root[data-theme="dark"] .protocol-cert-output-wrap {
+    border-color: var(--line-soft);
+    background: var(--paper-soft);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+:root[data-theme="dark"] .protocol-cert-output-wrap .protocol-cert-output {
+    background: transparent;
+}
+
+:root[data-theme="dark"] .cert-output-mark-expired {
+    background: rgba(224, 127, 108, 0.3);
+    box-shadow: 0 0 0 2px rgba(224, 127, 108, 0.18);
+}
+
+:root[data-theme="dark"] .cert-output-mark-positive {
+    background: rgba(227, 177, 107, 0.28);
+    box-shadow: 0 0 0 2px rgba(227, 177, 107, 0.17);
+}
+
+@media (max-width: 720px) {
+    .protocol-cert-output-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .protocol-cert-output-actions .button {
+        flex: 1 1 10rem;
     }
 }

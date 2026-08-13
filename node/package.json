@@ -1,6 +1,6 @@
 {
   "name": "protocolos-notariais-server",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Servidor unico dos Protocolos Notariais com SQLite e sincronizacao em tempo real.",

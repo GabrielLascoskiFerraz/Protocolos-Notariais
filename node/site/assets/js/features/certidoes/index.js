@@ -284,15 +284,18 @@ export function resolveCertificateIdentities(docs) {
 function buildSentence(doc, options = {}) {
     const status = doc.status || "nao identificado";
     const includeIssueDate = options.includeIssueDate !== false;
-    const issueDateSuffix = includeIssueDate ? `, emitida em ${doc.issueDate}` : "";
+    const placeholder = options.placeholder === true;
+    const number = placeholder ? "xxxxxx" : doc.number;
+    const issueDate = placeholder ? "xxxxxx" : doc.issueDate;
+    const issueDateSuffix = includeIssueDate ? `, emitida em ${issueDate}` : "";
 
-    if (doc.type === "municipal") return `Certidão ${status} de débitos municipais sob o nº ${doc.number}, expedida pela Prefeitura Municipal de Irati/PR${issueDateSuffix}`;
+    if (doc.type === "municipal") return `Certidão ${status} de débitos municipais sob o nº ${number}, expedida pela Prefeitura Municipal de Irati/PR${issueDateSuffix}`;
     if (doc.type === "estadual") {
-        const dateSuffix = includeIssueDate ? ` em ${doc.issueDate}` : "";
-        return `Certidão ${status} de débitos tributários e de dívida ativa estadual, sob o nº ${doc.number}, emitida pela Receita Estadual do Paraná${dateSuffix}`;
+        const dateSuffix = includeIssueDate ? ` em ${issueDate}` : "";
+        return `Certidão ${status} de débitos tributários e de dívida ativa estadual, sob o nº ${number}, emitida pela Receita Estadual do Paraná${dateSuffix}`;
     }
-    if (doc.type === "federal") return `Certidão ${status} de débitos relativos aos tributos federais e à dívida ativa da União, com código de controle nº ${doc.number}${issueDateSuffix}`;
-    if (doc.type === "trabalhista") return `Certidão ${status} de débitos trabalhistas expedida pelo Tribunal Superior do Trabalho TST, sob o nº ${doc.number}${issueDateSuffix}`;
+    if (doc.type === "federal") return `Certidão ${status} de débitos relativos aos tributos federais e à dívida ativa da União, com código de controle nº ${number}${issueDateSuffix}`;
+    if (doc.type === "trabalhista") return `Certidão ${status} de débitos trabalhistas expedida pelo Tribunal Superior do Trabalho TST, sob o nº ${number}${issueDateSuffix}`;
     return "";
 }
 
@@ -343,7 +346,7 @@ export function getStatusLabel(status) {
     return status;
 }
 
-export function buildCertificatesOutput(documents) {
+function buildCertificatesOutputWithOptions(documents, options = {}) {
     const validDocs = resolveCertificateIdentities([...documents]).filter(isCompleteCertificate).sort(compareCertificates);
     const groups = new Map();
     for (const doc of validDocs) {
@@ -355,12 +358,18 @@ export function buildCertificatesOutput(documents) {
 
     const blocks = [];
     groups.forEach((docs) => {
-        const displayName = docs.find((doc) => doc.name)?.name || docs[0]?.cpf || "PESSOA NÃO IDENTIFICADA";
+        const displayName = options.placeholder
+            ? "xxxxxx"
+            : docs.find((doc) => doc.name)?.name || docs[0]?.cpf || "PESSOA NÃO IDENTIFICADA";
         const commonIssueDate = getCommonIssueDate(docs);
-        const parts = docs.map((doc) => buildSentence(doc, { includeIssueDate: !commonIssueDate })).filter(Boolean);
+        const parts = docs.map((doc) => buildSentence(doc, {
+            includeIssueDate: !commonIssueDate,
+            placeholder: options.placeholder
+        })).filter(Boolean);
         if (!parts.length) return;
         if (commonIssueDate) {
-            blocks.push(`${displayName}: ${parts.join("; ")}; todas emitidas em ${commonIssueDate};`);
+            const outputDate = options.placeholder ? "xxxxxx" : commonIssueDate;
+            blocks.push(`${displayName}: ${parts.join("; ")}; todas emitidas em ${outputDate};`);
         } else {
             blocks.push(`${displayName}: ${parts.join("; ")};`);
         }
@@ -369,7 +378,39 @@ export function buildCertificatesOutput(documents) {
     return blocks.join("\n\n");
 }
 
-export function buildCertificatesOutputHighlights(documents) {
+export function buildCertificatesOutput(documents) {
+    return buildCertificatesOutputWithOptions(documents);
+}
+
+function buildPlaceholderTemplateDocuments() {
+    return TYPE_ORDER
+        .filter((type) => type !== "desconhecido")
+        .map((type) => ({
+            name: "xxxxxx",
+            type,
+            status: "xxxxxx",
+            number: "xxxxxx",
+            issueDate: "xxxxxx",
+            validityState: "nao identificada",
+            excludeFromOutput: false
+        }));
+}
+
+export function buildCertificatesPlaceholderOutput(documents) {
+    const source = Array.isArray(documents) ? documents : [];
+    const hasCompleteDocuments = resolveCertificateIdentities([...source]).some(isCompleteCertificate);
+    if (!hasCompleteDocuments) {
+        const templateDocuments = buildPlaceholderTemplateDocuments();
+        const parts = templateDocuments.map((doc) => buildSentence(doc, {
+            includeIssueDate: true,
+            placeholder: true
+        }));
+        return `xxxxxx: ${parts.join("; ")};`;
+    }
+    return buildCertificatesOutputWithOptions(source, { placeholder: true });
+}
+
+export function buildCertificatesOutputHighlights(documents, options = {}) {
     const validDocs = resolveCertificateIdentities([...documents]).filter(isCompleteCertificate).sort(compareCertificates);
     const groups = new Map();
     for (const doc of validDocs) {
@@ -387,7 +428,10 @@ export function buildCertificatesOutputHighlights(documents) {
             const isExpired = doc.validityState === "vencida";
             if (!isPositive && !isExpired) return;
             highlights.push({
-                text: buildSentence(doc, { includeIssueDate: !commonIssueDate }),
+                text: buildSentence(doc, {
+                    includeIssueDate: !commonIssueDate,
+                    placeholder: options.placeholder === true
+                }),
                 state: isExpired ? "expired" : "positive"
             });
         });

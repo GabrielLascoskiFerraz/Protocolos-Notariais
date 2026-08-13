@@ -3,6 +3,7 @@ import {
     buildCertificateAlerts,
     buildCertificateWarnings,
     buildCertificatesOutput,
+    buildCertificatesPlaceholderOutput,
     buildCertificatesOutputHighlights,
     getStatusBadgeClass,
     getStatusLabel,
@@ -18,6 +19,7 @@ const resultsEl = document.getElementById("cert-results");
 const outputEl = document.getElementById("cert-output");
 const outputHighlightEl = document.getElementById("cert-output-highlight");
 const copyBtn = document.getElementById("cert-copy");
+const placeholderBtn = document.getElementById("cert-placeholder");
 const clearBtn = document.getElementById("cert-clear");
 const warningBox = document.getElementById("cert-warning");
 const processingBox = document.getElementById("cert-processing");
@@ -30,6 +32,7 @@ let alertCloseTimer = 0;
 
 let parsedDocs = [];
 let nextDocId = 1;
+let outputMode = "real";
 let processingState = {
     active: false,
     total: 0,
@@ -77,7 +80,9 @@ function certMeta(icon, label, value) {
 
 function renderOutputHighlights(value = outputEl?.value || "") {
     if (!outputHighlightEl) return;
-    const highlights = buildCertificatesOutputHighlights(parsedDocs).filter((item) => item.text);
+    const highlights = buildCertificatesOutputHighlights(parsedDocs, {
+        placeholder: outputMode === "placeholder"
+    }).filter((item) => item.text);
     let cursor = 0;
     let html = "";
 
@@ -156,6 +161,7 @@ function setProcessingState(nextState) {
     }
     if (fileInput) fileInput.disabled = active;
     if (copyBtn) copyBtn.disabled = active;
+    if (placeholderBtn) placeholderBtn.disabled = active;
     if (clearBtn) clearBtn.disabled = active;
 
     renderResults();
@@ -285,9 +291,26 @@ function renderResults() {
 function regenerateOutput() {
     resolveCertificateIdentities(parsedDocs);
     if (outputEl) {
-        outputEl.value = buildCertificatesOutput(parsedDocs);
+        outputEl.value = outputMode === "placeholder"
+            ? buildCertificatesPlaceholderOutput(parsedDocs)
+            : buildCertificatesOutput(parsedDocs);
+    }
+    if (placeholderBtn) {
+        const label = placeholderBtn.querySelector("[data-button-label]");
+        const isPlaceholder = outputMode === "placeholder";
+        if (label) label.textContent = isPlaceholder ? "Usar dados reais" : "Gerar placeholder";
+        placeholderBtn.setAttribute("aria-pressed", String(isPlaceholder));
+        placeholderBtn.title = isPlaceholder
+            ? "Voltar ao texto com os dados extraídos"
+            : (parsedDocs.length ? "Substituir dados reais por xxxxxx" : "Gerar um modelo com campos xxxxxx");
+        placeholderBtn.disabled = processingState.active;
     }
     renderOutputHighlights();
+}
+
+function toggleOutputMode() {
+    outputMode = outputMode === "placeholder" ? "real" : "placeholder";
+    regenerateOutput();
 }
 
 async function handleFiles(files) {
@@ -372,6 +395,7 @@ async function copyOutput() {
 
 function clearAll() {
     parsedDocs = [];
+    outputMode = "real";
     resetProcessingState();
     hideWarning();
     closeAlertModal();
@@ -437,6 +461,7 @@ resultsEl?.addEventListener("click", (event) => {
 });
 
 copyBtn?.addEventListener("click", () => void copyOutput());
+placeholderBtn?.addEventListener("click", toggleOutputMode);
 clearBtn?.addEventListener("click", clearAll);
 outputEl?.addEventListener("scroll", () => {
     syncOutputHighlightScroll();
